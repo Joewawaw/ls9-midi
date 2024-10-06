@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import time
 import rtmidi
 import logging
@@ -10,7 +11,7 @@ MIDI_SEND_TO_MIX_OP =        0xFF
 MIDI_ST_LR_SEND_TO_MT_OP =   0xFF
 MIDI_MONO_SEND_TO_MT_OP =    0xFF
 MIDI_MIX_PATCH_TO_ST_LR_OP = 0xFF
-MIDI_MIX_PATCH_TO_MONO_OP =  0xFF
+MIDI_MIX_SEND_TO_MT_OP =     0xFF
 
 MIDI_CH_ON_OP  = 0x7F
 MIDI_CH_OFF_OP = 0x00
@@ -26,8 +27,8 @@ MIDI_CH_OFFSET = 53
 
 # NPRN message structure for Yamaha LS9:
 # CC cmd #   Byte 1   Byte 2   Byte 3
-#        1   0xB0     0x62     <CH>
-#        2   0xB0     0x63     <OP>
+#        1   0xB0     0x62     <CHANNEL>
+#        2   0xB0     0x63     <OPERATION>
 #        3   0xB0     0x06     <DATA[0]>
 #        4   0xB0     0x26     <DATA[1]>
 
