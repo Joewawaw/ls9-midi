@@ -17,7 +17,7 @@ MIDI_CH_ON_OP  = 0x7F
 MIDI_CH_OFF_OP = 0x00
 
 #MIDI defined constants for CC commands & NRPN sequence
-MIDI_CC_CMD_BYTE = 0xB0
+MIDI_CC_CMD_BYTE = 176
 MIDI_NRPN_BYTE_1 = 0x62
 MIDI_NRPN_BYTE_2 = 0x63
 MIDI_NRPN_BYTE_3 = 0x06
@@ -92,8 +92,8 @@ def send_nrpn(midi_output, channel, operation, data):
 # Process the 4 collected CC messages
 def process_cc_messages(messages, midi_out):
 
-    if is_fade_operation(messages):
-        pass
+    #if is_fade_operation(messages):
+    #    pass
         #logging.debug("MIDI IN: Channel "+str(get_channel(msg))+" fade to "+str(get_fade_data(messages)))
 
     ## Processing for ON/OFF message operations
@@ -108,14 +108,14 @@ def process_cc_messages(messages, midi_out):
                 channel += 32
                 data = [MIDI_CH_OFF_OP, MIDI_CH_OFF_OP]
                 logging.info("MIDI OUT: CH"+str(channel)+" OFF")
-#                send_nrpn(midi_out, channel, MIDI_ON_OFF_OP, data)
+                send_nrpn(midi_out, channel, MIDI_ON_OFF_OP, data)
             else:
                 logging.debug("MIXER IN: Channel "+str(channel)+" switched OFF")
                 channel += 32
                 data = [MIDI_CH_ON_OP, MIDI_CH_ON_OP]
                 logging.info("MIDI OUT: CH"+str(channel)+" ON")
-#                send_nrpn(midi_out, channel, MIDI_ON_OFF_OP, data)
-        
+                send_nrpn(midi_out, channel, MIDI_ON_OFF_OP, data)
+
         elif channel >= 33 and channel <= 42:
             #if the channel is switched ON, switch OFF the original channel
             if get_on_off_data(messages) == True:
@@ -123,13 +123,13 @@ def process_cc_messages(messages, midi_out):
                 channel -= 32
                 data = [MIDI_CH_OFF_OP, MIDI_CH_OFF_OP]
                 logging.info("MIDI OUT: CH"+str(channel)+" OFF")
-#                send_nrpn(midi_out, channel, MIDI_ON_OFF_OP, data)
+                send_nrpn(midi_out, channel, MIDI_ON_OFF_OP, data)
             else:
                 logging.debug("MIXER IN: CH"+str(channel)+" switched OFF")
                 channel -= 32
                 data = [MIDI_CH_ON_OP, MIDI_CH_ON_OP]
                 logging.info("MIDI OUT: CH"+str(channel)+" ON")
-#                send_nrpn(midi_out, channel, MIDI_ON_OFF_OP, data)
+                send_nrpn(midi_out, channel, MIDI_ON_OFF_OP, data)
 
 #This code is event based, it will only trigger upon receiving a message from the mixer
 def main():
@@ -153,22 +153,23 @@ def main():
         #delay is necessary to not overload the CPU or RAM
         time.sleep(0.01)
 
-        msg, timestamp = midi_in.get_message()
+        msg = midi_in.get_message()
 
         if msg:
+            messages = msg[0]
             # Filter out everything but CC (Control Change) commands
-            if msg[0] == MIDI_CC_CMD_BYTE:
-                cc_messages.append(msg)
-                logging.debug("Received CC command "+ str(msg))
+            if messages[0] == MIDI_CC_CMD_BYTE:
+                cc_messages.append(messages)
+#                logging.debug("Received CC command "+ str(msg))
 
             # Once we have 4 CC messages, process them
             if len(cc_messages) == 4:
-                try:
-                    process_cc_messages(cc_messages, midi_out)
-                except ValueError as e:
-                    logging.error(e.msg + e.args)
-                finally:
-                    cc_messages.clear()  # Clear the list for the next batch of 4 messages
+#                try:
+                process_cc_messages(cc_messages, midi_out)
+#                except ValueError as e:
+#                    logging.error(e.args)
+ #               finally:
+                cc_messages.clear()  # Clear the list for the next batch of 4 messages
 
 
 if __name__ == '__main__':
