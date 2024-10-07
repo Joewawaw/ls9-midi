@@ -3,27 +3,87 @@
 import time
 import rtmidi
 import logging
+import traceback
+
+## TO DO:
+# - implement a timeout on receiving 4 midi messages (they should all happen in rapid succession)
+#   this will harden the midi receive machine
+# - unit tests!
+#   assert all is_ statements
+#   assert channel out of bounds
+#   assert simple midi cc filter 
+#   assert invalid nrpn message
+#   assert rx buffer timeout
 
 #_OP means operation
 MIDI_ON_OFF_OP =             0x0B
-MIDI_FADE_OP   =             0xFF
+MIDI_FADE_OP   =             0x00
 MIDI_SEND_TO_MIX_OP =        0xFF
 MIDI_ST_LR_SEND_TO_MT_OP =   0xFF
+MIDI_PATCH_IN_OP =           0xFF
 MIDI_MONO_SEND_TO_MT_OP =    0xFF
 MIDI_MIX_PATCH_TO_ST_LR_OP = 0xFF
 MIDI_MIX_SEND_TO_MT_OP =     0xFF
 
-MIDI_CH_ON_OP  = 0x7F
-MIDI_CH_OFF_OP = 0x00
+MIDI_CH_ON_VALUE  = 0x7F
+MIDI_CH_OFF_VALUE = 0x00
+#### fill these in!
+MIDI_FADE_0DB_MIX_SEND_VALUE =  0xFF
+MIDI_FADE_NEGINF_MIX_SEND_VALUE = 0xFF
+
 
 #MIDI defined constants for CC commands & NRPN sequence
-MIDI_CC_CMD_BYTE = 176
+MIDI_CC_CMD_BYTE = 0xB0
 MIDI_NRPN_BYTE_1 = 0x62
 MIDI_NRPN_BYTE_2 = 0x63
 MIDI_NRPN_BYTE_3 = 0x06
 MIDI_NRPN_BYTE_4 = 0x26
 
-MIDI_CH_OFFSET = 53
+MIDI_CH_OFFSET =   0x35
+
+#### fill these in!
+MIDI_ST_IN1_CH = 81
+MIDI_ST_IN2_CH = 82
+MIDI_ST_IN3_CH = 83
+MIDI_ST_IN4_CH = 84
+MIDI_MIX16_CHANNEL = 90
+MIDI_MT3_CHANNEL = 91
+
+#### fill these in!
+MIDI_FADE_0DB_VALUE =    0xFF
+MIDI_FADE_40DB_VALUE =   0xFF
+MIDI_FADE_50DB_VALUE =   0xFF
+MIDI_FADE_NEGINF_VALUE = 0xFF
+
+
+WIRELESS_MC_TO_CHR_MAPPING = [
+    (11, 47), 
+    (12, 48), 
+    (13, 49),
+    (14, 50)
+]
+
+WIRELESS_MC_TO_LEAD_MAPPING = [
+    (11, 43), 
+    (12, 44), 
+    (13, 45),
+    (14, 46)
+]
+
+WIRELESS_CHR_TO_LEAD_MAPPING = [
+    (47, 43), 
+    (48, 44), 
+    (49, 45),
+    (50, 46)
+]
+
+#these two functions are the getters to the lists of tuples above.
+def get_second_elem(pairs, first):
+    return next((second for f, second in pairs if f == first), None)
+
+def get_first_elem(pairs, second):
+    return next((first for first, s in pairs if s == second), None)
+
 
 # NPRN message structure for Yamaha LS9:
 # CC cmd #   Byte 1   Byte 2   Byte 3
@@ -34,7 +94,7 @@ MIDI_CH_OFFSET = 53
 
 def is_valid_nrpn_message(msg):
     if int(msg[0][1]) != MIDI_NRPN_BYTE_1 or int(msg[1][1]) != MIDI_NRPN_BYTE_2 or int(msg[2][1]) != MIDI_NRPN_BYTE_3 or int(msg[3][1]) != MIDI_NRPN_BYTE_4:
-        raise ValueError("Incorrect NRPN MIDI data sequence! Message Dump: "+ str(msg))
+        raise ValueError(f"Invalid NRPN MIDI data sequence! MIDI Message Dump: {msg}")
     return True
 
 def is_on_off_operation(msg):
@@ -57,9 +117,9 @@ def get_on_off_data(msg):
     if not is_on_off_operation(msg):
         raise ValueError("Message is not an ON/OFF operation!")
 
-    if  int(msg[2][2])==MIDI_CH_OFF_OP and int(msg[3][2])==MIDI_CH_OFF_OP:
+    if  int(msg[2][2])==MIDI_CH_OFF_VALUE and int(msg[3][2])==MIDI_CH_OFF_VALUE:
         return False
-    elif int(msg[3][2])==MIDI_CH_ON_OP and int(msg[3][2])==MIDI_CH_ON_OP:
+    elif int(msg[3][2])==MIDI_CH_ON_VALUE and int(msg[3][2])==MIDI_CH_ON_VALUE:
         return True
     
 def get_fade_data(msg):
@@ -82,7 +142,7 @@ def send_nrpn(midi_output, channel, operation, data):
     if operation != MIDI_ON_OFF_OP and operation != MIDI_FADE_OP:
         raise ValueError("<operation> is invalid!")
     
-    #remove the offset when sending out
+    #remove the channel offset when sending out
     midi_output.send_message([MIDI_CC_CMD_BYTE, MIDI_NRPN_BYTE_1,  channel+MIDI_CH_OFFSET])
     midi_output.send_message([MIDI_CC_CMD_BYTE, MIDI_NRPN_BYTE_2,  operation])
     midi_output.send_message([MIDI_CC_CMD_BYTE, MIDI_NRPN_BYTE_3,  data[0]])
@@ -91,10 +151,15 @@ def send_nrpn(midi_output, channel, operation, data):
 
 # Process the 4 collected CC messages
 def process_cc_messages(messages, midi_out):
-
-    #if is_fade_operation(messages):
-    #    pass
-        #logging.debug("MIDI IN: Channel "+str(get_channel(msg))+" fade to "+str(get_fade_data(messages)))
+    ## Processing for Fade operations
+    if is_fade_operation(messages):
+        #logging.debug(f"MIDI IN: CH{get_channel(messages)} fade to {get_fade_data(messages)}")
+        pass
+        # We automate muting vocal mics on the monitor mix if they are lowered below -50dB, and snap back to 0dB if they go above -40dB (so a software schmitt trigger)
+        if get_fade_data(channel) < MIDI_FADE_50DB_VALUE:
+            send_nrpn(midi_out, channel, MIDI_FADE_OP, [MIDI_FADE_NEGINF_VALUE, MIDI_FADE_NEGINF_VALUE])
+        elif get_fade_data(channel) > MIDI_FADE_40DB_VALUE:
+            send_nrpn(midi_out, channel, MIDI_FADE_OP, [MIDI_FADE_0DB_VALUE, MIDI_FADE_0DB_VALUE])
 
     ## Processing for ON/OFF message operations
     if is_on_off_operation(messages):
@@ -104,40 +169,104 @@ def process_cc_messages(messages, midi_out):
         if channel >= 1 and channel <= 10:
             #if the channel is switched ON, switch OFF the duplicate channel
             if get_on_off_data(messages) == True:
-                logging.debug("MIXER IN: Channel "+str(channel)+" switched ON")
+                logging.debug(f"MIXER IN: CH{channel} switched ON")
+                #get the upper layer channel by adding 32
                 channel += 32
-                data = [MIDI_CH_OFF_OP, MIDI_CH_OFF_OP]
-                logging.info("MIDI OUT: CH"+str(channel)+" OFF")
-                send_nrpn(midi_out, channel, MIDI_ON_OFF_OP, data)
+                #use the MIDI_CH_OFF_VALUE constant in the data block
+                logging.info(f"MIDI OUT: CH{channel} OFF")
+                send_nrpn(midi_out, channel, MIDI_ON_OFF_OP, [MIDI_CH_OFF_VALUE, MIDI_CH_OFF_VALUE])
             else:
-                logging.debug("MIXER IN: Channel "+str(channel)+" switched OFF")
+                logging.debug(f"MIXER IN: CH{channel} switched OFF")
                 channel += 32
-                data = [MIDI_CH_ON_OP, MIDI_CH_ON_OP]
-                logging.info("MIDI OUT: CH"+str(channel)+" ON")
-                send_nrpn(midi_out, channel, MIDI_ON_OFF_OP, data)
-
+                logging.info(f"MIDI OUT: CH{channel} ON")
+                send_nrpn(midi_out, channel, MIDI_ON_OFF_OP, [MIDI_CH_ON_VALUE, MIDI_CH_ON_VALUE])
         elif channel >= 33 and channel <= 42:
-            #if the channel is switched ON, switch OFF the original channel
+            #if the duplicate channel is switched ON, switch OFF the original channel
             if get_on_off_data(messages) == True:
-                logging.debug("MIXER IN: CH"+str(channel)+" switched ON")
+                logging.debug(f"MIXER IN: CH{channel} switched ON")
+                #get the lower layer channel by subtracting 32
                 channel -= 32
-                data = [MIDI_CH_OFF_OP, MIDI_CH_OFF_OP]
-                logging.info("MIDI OUT: CH"+str(channel)+" OFF")
-                send_nrpn(midi_out, channel, MIDI_ON_OFF_OP, data)
+                logging.info(f"MIDI OUT: CH{channel} OFF")
+                send_nrpn(midi_out, channel, MIDI_ON_OFF_OP, [MIDI_CH_OFF_VALUE, MIDI_CH_OFF_VALUE])
             else:
-                logging.debug("MIXER IN: CH"+str(channel)+" switched OFF")
+                logging.debug(f"MIXER IN: CH{channel} switched OFF")
                 channel -= 32
-                data = [MIDI_CH_ON_OP, MIDI_CH_ON_OP]
-                logging.info("MIDI OUT: CH"+str(channel)+" ON")
-                send_nrpn(midi_out, channel, MIDI_ON_OFF_OP, data)
+                logging.info(f"MIDI OUT: CH{channel} ON")
+                send_nrpn(midi_out, channel, MIDI_ON_OFF_OP, [MIDI_CH_ON_VALUE, MIDI_CH_ON_VALUE])
+        
+        
+        ## Automation for Wireless M.C. Mics
+        ## handling switch presses on the WL MC channels
+        elif channel >=11 and channel <= 14:
+            chr_channel = get_second_elem(WIRELESS_MC_TO_CHR_MAPPING, channel)
+            lead_channel = get_second_elem(WIRELESS_MC_TO_LEAD_MAPPING, channel)
+            # If Wireless MC CH N switched ON, then turn off WLCHR N & LEADWL N
+            if get_on_off_data(messages) == True:
+                send_nrpn(midi_out, chr_channel, MIDI_ON_OFF_OP, [MIDI_CH_OFF_VALUE, MIDI_CH_OFF_VALUE])
+                send_nrpn(midi_out, lead_channel, MIDI_ON_OFF_OP, [MIDI_CH_OFF_VALUE, MIDI_CH_OFF_VALUE])
+            # If Wireless MC CH N switched off, then switch on WLCHR N and turn off LEADWL N
+            else:
+                send_nrpn(midi_out, chr_channel, MIDI_ON_OFF_OP, [MIDI_CH_ON_VALUE, MIDI_CH_ON_VALUE])
+                send_nrpn(midi_out, lead_channel, MIDI_ON_OFF_OP, [MIDI_CH_OFF_VALUE, MIDI_CH_OFF_VALUE])
+
+        ## handling switch presses on the LEADWL channels
+        elif channel >=43 and channel <= 46:
+            mc_channel = get_first_elem(WIRELESS_MC_TO_LEAD_MAPPING, channel)
+            chr_channel = get_first_elem(WIRELESS_CHR_TO_LEAD_MAPPING, channel)
+            # If LEADWL CH N switched ON, then turn off WLCHR N & WLMC N
+            if get_on_off_data(messages) == True:
+                send_nrpn(midi_out, chr_channel, MIDI_ON_OFF_OP, [MIDI_CH_OFF_VALUE, MIDI_CH_OFF_VALUE])
+                send_nrpn(midi_out, mc_channel, MIDI_ON_OFF_OP, [MIDI_CH_OFF_VALUE, MIDI_CH_OFF_VALUE])
+            # If LEADWL CH N switched off, then switch on WLCHR N & turn off WLMC N
+            else:                
+                send_nrpn(midi_out, chr_channel, MIDI_ON_OFF_OP, [MIDI_CH_ON_VALUE, MIDI_CH_ON_VALUE])
+                send_nrpn(midi_out, mc_channel, MIDI_ON_OFF_OP, [MIDI_CH_OFF_VALUE, MIDI_CH_OFF_VALUE])
+
+        ## handling switch presses on the WLCHR channels
+        elif channel >=43 and channel <= 46:
+            mc_channel = get_first_elem(WIRELESS_MC_TO_CHR_MAPPING, channel)
+            lead_channel = get_second_elem(WIRELESS_CHR_TO_LEAD_MAPPING, channel)
+            # If WLCHR CH N switched ON, then turn off LEADWL N & WLMC N
+            if get_on_off_data(messages) == True:                
+                send_nrpn(midi_out, mc_channel, MIDI_ON_OFF_OP, [MIDI_CH_OFF_VALUE, MIDI_CH_OFF_VALUE])
+                send_nrpn(midi_out, lead_channel, MIDI_ON_OFF_OP, [MIDI_CH_OFF_VALUE, MIDI_CH_OFF_VALUE])
+            # If WLCHR CH N switched off, then switch on LEADWL N and turn off WLMC N
+            else:
+                send_nrpn(midi_out, lead_channel, MIDI_ON_OFF_OP, [MIDI_CH_ON_VALUE, MIDI_CH_ON_VALUE])
+                send_nrpn(midi_out, mc_channel, MIDI_ON_OFF_OP, [MIDI_CH_OFF_VALUE, MIDI_CH_OFF_VALUE])
+
+        #Automation for ST-IN channels: we reroute LINE 2 to LOBBY or BASMNT, and activate/deactivate WLTKBK
+        elif channel == MIDI_ST_IN1_CH:
+            # if ST-IN1 was switched ON, route LINE 2 to BASMNT, and patch PC IN2 to ST-IN1
+            if get_on_off_data(messages) == True:
+                send_nrpn(midi_out, MIDI_MIX16_CHANNEL, MIDI_MIX_SEND_TO_MT_OP, [0x00, 0x00])
+                send_nrpn(midi_out, MIDI_ST_IN1_CH, MIDI_PATCH_IN_OP, [0x00, 0x00])
+            # if switched off, patch MONO to BASMNT and unpatch ST-IN1
+            else:
+                send_nrpn(midi_out, MIDI_MIX16_CHANNEL, MIDI_MIX_SEND_TO_MT_OP, [0x00, 0x00])
+                send_nrpn(midi_out, MIDI_MT3_CHANNEL, MIDI_MONO_SEND_TO_MT_OP, [0x00, 0x00])
+                send_nrpn(midi_out, MIDI_ST_IN1_CH, MIDI_PATCH_IN_OP, [0x00, 0x00])
+
+        elif channel == MIDI_ST_IN2_CH:
+            # if ST-IN2 was switched ON, route LINE 2 to LOBBY, and patch PC IN2 to ST-IN2
+            if get_on_off_data(messages) == True:
+                send_nrpn(midi_out, MIDI_MIX16_CHANNEL, MIDI_MIX_SEND_TO_MT_OP, [0x00, 0x00])
+                send_nrpn(midi_out, MIDI_ST_IN1_CH, MIDI_PATCH_IN_OP, [0x00, 0x00])
+            else:
+                send_nrpn(midi_out, MIDI_MIX16_CHANNEL, MIDI_MIX_SEND_TO_MT_OP, [0x00, 0x00])
+                send_nrpn(midi_out, MIDI_ST_IN1_CH, MIDI_PATCH_IN_OP, [0x00, 0x00])
+
+
+
+
+
 
 #This code is event based, it will only trigger upon receiving a message from the mixer
 def main():
     LOG_LEVEL = logging.DEBUG
 
-
     # Setup the MIDI input & output
-    midi_in = rtmidi.MidiIn()
+    midi_in =  rtmidi.MidiIn()
     midi_out = rtmidi.MidiOut()
 
     midi_in.open_port(0)
@@ -153,23 +282,26 @@ def main():
         #delay is necessary to not overload the CPU or RAM
         time.sleep(0.01)
 
-        msg = midi_in.get_message()
+        #get the raw data from the midi get_message function. It will either return None, or a 2 element list
+        midi_msg = midi_in.get_message()
 
-        if msg:
-            messages = msg[0]
+        if midi_msg != None:
+            messages = midi_msg[0] #get the message packet, the other entry (midi_msg[1]) is the timestamp in unix time
             # Filter out everything but CC (Control Change) commands
             if messages[0] == MIDI_CC_CMD_BYTE:
                 cc_messages.append(messages)
-#                logging.debug("Received CC command "+ str(msg))
-
+                logging.debug(f"Received CC command {midi_msg[0]} @{midi_msg[1]}")
             # Once we have 4 CC messages, process them
             if len(cc_messages) == 4:
-#                try:
-                process_cc_messages(cc_messages, midi_out)
-#                except ValueError as e:
-#                    logging.error(e.args)
- #               finally:
-                cc_messages.clear()  # Clear the list for the next batch of 4 messages
+                try:
+                    process_cc_messages(cc_messages, midi_out)
+                except ValueError as e:
+                    error_message = traceback.format_exc()
+                    logging.error(error_message)
+                    logging.error(str(e))
+
+                finally:
+                   cc_messages.clear()  # Clear the list for the next batch of 4 messages
 
 
 if __name__ == '__main__':
