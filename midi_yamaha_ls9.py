@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-
+#!../bin/python3
 import time
 import rtmidi
 import logging
