@@ -304,6 +304,39 @@ def main():
                 finally:
                    cc_messages.clear()  # Clear the list for the next batch of 4 messages
 
+def midi_console():
+    # Setup the MIDI input & output
+    midi_in =  rtmidi.MidiIn()
+    midi_out = rtmidi.MidiOut()
+
+    midi_in.open_port(0)
+    midi_out.open_port(0)
+    
+    cc_messages = []
+    while True:
+        #delay is necessary to not overload the CPU or RAM
+        time.sleep(0.01)
+
+        #get the raw data from the midi get_message function. It will either return None, or a 2 element list
+        midi_msg = midi_in.get_message()
+
+        if midi_msg != None:
+            messages = midi_msg[0] #get the message packet, the other entry (midi_msg[1]) is the timestamp in unix time
+            # Filter out everything but CC (Control Change) commands
+            if messages[0] == MIDI_CC_CMD_BYTE:
+                cc_messages.append(messages)
+            # Once we have 4 CC messages, process them
+            if len(cc_messages) == 4:
+                try:
+                    logging.info(f"Channel: {msg[0][2]} Operation: {msg[1][2]} Data: {msg[2][2]} {msg[3][2]}")
+                except ValueError as e:
+                    error_message = traceback.format_exc()
+                    logging.error(error_message)
+                    logging.error(str(e))
+
+                finally:
+                   cc_messages.clear()  # Clear the list for the next batch of 4 messages
+
 
 if __name__ == '__main__':
     main()
