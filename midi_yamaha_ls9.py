@@ -157,10 +157,10 @@ def process_cc_messages(messages, midi_out):
         #logging.debug(f"MIDI IN: CH{get_channel(messages)} fade to {get_fade_data(messages)}")
         pass
         # We automate muting vocal mics on the monitor mix if they are lowered below -50dB, and snap back to 0dB if they go above -40dB (so a software schmitt trigger)
-        if get_fade_data(channel) < MIDI_FADE_50DB_VALUE:
-            send_nrpn(midi_out, channel, MIDI_FADE_OP, [MIDI_FADE_NEGINF_VALUE, MIDI_FADE_NEGINF_VALUE])
-        elif get_fade_data(channel) > MIDI_FADE_40DB_VALUE:
-            send_nrpn(midi_out, channel, MIDI_FADE_OP, [MIDI_FADE_0DB_VALUE, MIDI_FADE_0DB_VALUE])
+        #if get_fade_data(channel) < MIDI_FADE_50DB_VALUE:
+        #    send_nrpn(midi_out, channel, MIDI_FADE_OP, [MIDI_FADE_NEGINF_VALUE, MIDI_FADE_NEGINF_VALUE])
+        #elif get_fade_data(channel) > MIDI_FADE_40DB_VALUE:
+        #    send_nrpn(midi_out, channel, MIDI_FADE_OP, [MIDI_FADE_0DB_VALUE, MIDI_FADE_0DB_VALUE])
 
     ## Processing for ON/OFF message operations
     if is_on_off_operation(messages):
@@ -311,7 +311,7 @@ def midi_console():
 
     midi_in.open_port(0)
     midi_out.open_port(0)
-    
+
     cc_messages = []
     while True:
         #delay is necessary to not overload the CPU or RAM
