@@ -1,4 +1,6 @@
 #!../bin/python3
+
+#this requires a python venv with python-rtmidi installed
 import time
 import rtmidi
 import logging
