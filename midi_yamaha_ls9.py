@@ -399,7 +399,7 @@ def main():
 
 if __name__ == '__main__':
     #run the console mini-app if the argument "console" was passed to the script
-    if len(sys.argv > 2):
+    if len(sys.argv) > 2:
         if sys.argv[1] == "console":
             midi_in =  rtmidi.MidiIn()
             midi_in.open_port(0)
