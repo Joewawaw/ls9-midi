@@ -12,7 +12,7 @@
 #    git clone https://github.com/joewawaw/ls9-midi src
 #    source bin/activate
 #    pip install python-rtmidi bidict
-import bidict
+from bidict import bidict
 import rtmidi
 
 import time
