@@ -21,37 +21,23 @@ import traceback
 import sys
 
 ## TO DO:
-# - implement a timeout on receiving 4 midi messages (they should all happen in rapid succession)
-#   this will harden the midi receive machine
 # - unit tests!
-#   assert all is_ statements
-#   assert channel out of bounds
-#   assert simple midi cc filter 
-#   assert invalid nrpn message
-#   assert rx buffer timeout
-
-#_OP means operation
-#MIDI_ON_OFF_OP =             0x0B
-#MIDI_FADE_OP   =             0x00
-#MIDI_SEND_TO_MIX_OP =        0xFF
-#MIDI_ST_LR_SEND_TO_MT_OP =   0xFF
-#MIDI_PATCH_IN_OP =           0xFF
-#MIDI_MONO_SEND_TO_MT_OP =    0xFF
-#MIDI_MIX_PATCH_TO_ST_LR_OP = 0xFF
-#MIDI_MIX_SEND_TO_MT_OP =     0xFF
-
+#     assert all is_ statements
+#     assert channel out of bounds
+#     assert simple midi cc filter 
+#     assert invalid nrpn message
+#     assert rx buffer timeout
 MIDI_CH_ON_VALUE  = 0x3FFF
 MIDI_CH_OFF_VALUE = 0x0000
 
 #### fill these in!
-MIDI_FADE_0DB_VALUE =    0xFF
-MIDI_FADE_40DB_VALUE =   0xFF
-MIDI_FADE_50DB_VALUE =   0xFF
-MIDI_FADE_60DB_VALUE =   0xFF
-MIDI_FADE_NEGINF_VALUE = 0xFF
+MIDI_FADE_0DB_VALUE =    0xFFFF
+MIDI_FADE_50DB_VALUE =   0xFFFF
+MIDI_FADE_60DB_VALUE =   0xFFFF
+MIDI_FADE_NEGINF_VALUE = 0xFFFF
 
-MIDI_IN_PATCH_ON_VALUE =  0xFF
-MIDI_IN_PATCH_OFF_VALUE = 0xFF
+MIDI_IN_PATCH_ON_VALUE =  0xFFFF
+MIDI_IN_PATCH_OFF_VALUE = 0xFFFF
 
 #MIDI defined constants for CC commands & NRPN sequence
 MIDI_CC_CMD_BYTE = 0xB0
@@ -61,81 +47,82 @@ MIDI_NRPN_BYTE_3 = 0x06
 MIDI_NRPN_BYTE_4 = 0x26
 
 MIDI_ON_OFF_CONTROLLERS = bidict({
-    "CH01" : 80, "CH02" : 80, "CH03" : 80, "CH04" : 80, "CH05" : 80, "CH06" : 80, "CH07" : 80, "CH08" : 80,
-    "CH09" : 80, "CH10" : 80, "CH11" : 80, "CH12" : 80, "CH13" : 80, "CH14" : 80, "CH15" : 80, "CH16" : 80,
-    "CH17" : 80, "CH18" : 80, "CH19" : 80, "CH20" : 80, "CH21" : 80, "CH22" : 80, "CH23" : 80, "CH24" : 80,
-    "CH25" : 80, "CH26" : 80, "CH27" : 80, "CH28" : 80, "CH29" : 80, "CH30" : 80, "CH31" : 80, "CH32" : 80,
+    "CH01" : 0x0001, "CH02" : 0x0002, "CH03" : 0x0003, "CH04" : 0x0004, "CH05" : 0x0005, "CH06" : 0x0006, "CH07" : 0x0007, "CH08" : 0x0008,
+    "CH09" : 0x0011, "CH10" : 0x0012, "CH11" : 0x0013, "CH12" : 0x0014, "CH13" : 0x0015, "CH14" : 0x0016, "CH15" : 0x0017, "CH16" : 0x0018,
+    "CH17" : 0x0021, "CH18" : 0x0022, "CH19" : 0x0023, "CH20" : 0x0024, "CH21" : 0x0025, "CH22" : 0x0026, "CH23" : 0x0027, "CH24" : 0x0028,
+    "CH25" : 0x0031, "CH26" : 0x0032, "CH27" : 0x0033, "CH28" : 0x0034, "CH29" : 0x0035, "CH30" : 0x0036, "CH31" : 0x0037, "CH32" : 0x0038,
 
-    "CH33" : 80, "CH34" : 80, "CH35" : 80, "CH36" : 80, "CH37" : 80, "CH38" : 80, "CH39" : 80, "CH40" : 80,
-    "CH41" : 80, "CH42" : 80, "CH43" : 80, "CH44" : 80, "CH45" : 80, "CH46" : 80, "CH47" : 80, "CH48" : 80,
-    "CH49" : 80, "CH50" : 80, "CH51" : 80, "CH52" : 80, "CH53" : 80, "CH54" : 80, "CH55" : 80, "CH56" : 80,
-    "CH57" : 80, "CH58" : 80, "CH59" : 80, "CH60" : 80, "CH61" : 80, "CH62" : 80, "CH63" : 80, "CH64" : 80,
+    "CH33" : 0x0041, "CH34" : 0x0042, "CH35" : 0x0043, "CH36" : 0x0044, "CH37" : 0x0045, "CH38" : 0x0046, "CH39" : 0x0047, "CH40" : 0x0048,
+    "CH41" : 0x0051, "CH42" : 0x0052, "CH43" : 0x0053, "CH44" : 0x0054, "CH45" : 0x0055, "CH46" : 0x0056, "CH47" : 0x0057, "CH48" : 0x0058,
+    "CH49" : 0x0061, "CH50" : 0x0062, "CH51" : 0x0063, "CH52" : 0x0064, "CH53" : 0x0065, "CH54" : 0x0066, "CH55" : 0x0067, "CH56" : 0x0068,
+    "CH57" : 0x0071, "CH58" : 0x0072, "CH59" : 0x0073, "CH60" : 0x0074, "CH61" : 0x0075, "CH62" : 0x0076, "CH63" : 0x0077, "CH64" : 0x0078,
 
-    "MIX1" : 80, "MIX2"  : 80, "MIX3"  : 80, "MIX4"  : 80, "MIX5"  : 80, "MIX6"  : 80, "MIX7"  : 80, "MIX8"  : 80,
-    "MIX9" : 80, "MIX10" : 80, "MIX11" : 80, "MIX12" : 80, "MIX13" : 80, "MIX14" : 80, "MIX15" : 80, "MIX16" : 80,
-    "MT1"  : 80, "MT2"   : 80, "MT3"   : 80, "MT4"   : 80, "MT5"   : 80, "MT6"   : 80, "MT7"   : 80, "MT8"   : 80,
+    "MIX1" : 0x0081, "MIX2" : 0x0082, "MIX3" : 0x0083, "MIX4" : 0x0084, "MIX5" : 0x0085, "MIX6" : 0x0086, "MIX7" : 0x0087, "MIX8" : 0x0088,
+    "MIX9" : 0x0091, "MIX10": 0x0092, "MIX11": 0x0093, "MIX12": 0x0094, "MIX13": 0x0095, "MIX14": 0x0096, "MIX15": 0x0097, "MIX16": 0x0098,
+    "MT1"  : 0x00A1, "MT2"  : 0x00A2, "MT3"  : 0x00A3, "MT4"  : 0x00A4, "MT5"  : 0x00A5, "MT6"  : 0x00A6, "MT7"  : 0x00A7, "MT8"  : 0x00A8,
 
-    "ST-IN1" : 80, "ST-IN2" : 80, "ST-IN3" : 80, "ST-IN4" : 80, "ST LR" : 80, "MONO" : 80, "MON" : 80
+    "ST-IN1": 0x00B1, "ST-IN2": 0x00B2, "ST-IN3": 0x00B3, "ST-IN4": 0x00B4, "ST LR": 0x00B5, "MONO": 0x00B6, "MON": 0x00B7, "PB L": 0x00B8
 })
 
 MIDI_FADER_CONTROLLERS = bidict({
-    "CH01" : 80, "CH02" : 80, "CH03" : 80, "CH04" : 80, "CH05" : 80, "CH06" : 80, "CH07" : 80, "CH08" : 80,
-    "CH09" : 80, "CH10" : 80, "CH11" : 80, "CH12" : 80, "CH13" : 80, "CH14" : 80, "CH15" : 80, "CH16" : 80,
-    "CH17" : 80, "CH18" : 80, "CH19" : 80, "CH20" : 80, "CH21" : 80, "CH22" : 80, "CH23" : 80, "CH24" : 80,
-    "CH25" : 80, "CH26" : 80, "CH27" : 80, "CH28" : 80, "CH29" : 80, "CH30" : 80, "CH31" : 80, "CH32" : 80,
+    "CH01" : 0x0001, "CH02" : 0x0002, "CH03" : 0x0003, "CH04" : 0x0004, "CH05" : 0x0005, "CH06" : 0x0006, "CH07" : 0x0007, "CH08" : 0x0008,
+    "CH09" : 0x0011, "CH10" : 0x0012, "CH11" : 0x0013, "CH12" : 0x0014, "CH13" : 0x0015, "CH14" : 0x0016, "CH15" : 0x0017, "CH16" : 0x0018,
+    "CH17" : 0x0021, "CH18" : 0x0022, "CH19" : 0x0023, "CH20" : 0x0024, "CH21" : 0x0025, "CH22" : 0x0026, "CH23" : 0x0027, "CH24" : 0x0028,
+    "CH25" : 0x0031, "CH26" : 0x0032, "CH27" : 0x0033, "CH28" : 0x0034, "CH29" : 0x0035, "CH30" : 0x0036, "CH31" : 0x0037, "CH32" : 0x0038,
 
-    "CH33" : 80, "CH34" : 80, "CH35" : 80, "CH36" : 80, "CH37" : 80, "CH38" : 80, "CH39" : 80, "CH40" : 80,
-    "CH41" : 80, "CH42" : 80, "CH43" : 80, "CH44" : 80, "CH45" : 80, "CH46" : 80, "CH47" : 80, "CH48" : 80,
-    "CH49" : 80, "CH50" : 80, "CH51" : 80, "CH52" : 80, "CH53" : 80, "CH54" : 80, "CH55" : 80, "CH56" : 80,
-    "CH57" : 80, "CH58" : 80, "CH59" : 80, "CH60" : 80, "CH61" : 80, "CH62" : 80, "CH63" : 80, "CH64" : 80,
+    "CH33" : 0x0041, "CH34" : 0x0042, "CH35" : 0x0043, "CH36" : 0x0044, "CH37" : 0x0045, "CH38" : 0x0046, "CH39" : 0x0047, "CH40" : 0x0048,
+    "CH41" : 0x0051, "CH42" : 0x0052, "CH43" : 0x0053, "CH44" : 0x0054, "CH45" : 0x0055, "CH46" : 0x0056, "CH47" : 0x0057, "CH48" : 0x0058,
+    "CH49" : 0x0061, "CH50" : 0x0062, "CH51" : 0x0063, "CH52" : 0x0064, "CH53" : 0x0065, "CH54" : 0x0066, "CH55" : 0x0067, "CH56" : 0x0068,
+    "CH57" : 0x0071, "CH58" : 0x0072, "CH59" : 0x0073, "CH60" : 0x0074, "CH61" : 0x0075, "CH62" : 0x0076, "CH63" : 0x0077, "CH64" : 0x0078,
 
-    "MIX1" : 80, "MIX2"  : 80, "MIX3"  : 80, "MIX4"  : 80, "MIX5"  : 80, "MIX6"  : 80, "MIX7"  : 80, "MIX8"  : 80,
-    "MIX9" : 80, "MIX10" : 80, "MIX11" : 80, "MIX12" : 80, "MIX13" : 80, "MIX14" : 80, "MIX15" : 80, "MIX16" : 80,
-    "MT1"  : 80, "MT2"   : 80, "MT3"   : 80, "MT4"   : 80, "MT5"   : 80, "MT6"   : 80, "MT7"   : 80, "MT8"   : 80,
+    "MIX1" : 0x0081, "MIX2" : 0x0082, "MIX3" : 0x0083, "MIX4" : 0x0084, "MIX5" : 0x0085, "MIX6" : 0x0086, "MIX7" : 0x0087, "MIX8" : 0x0088,
+    "MIX9" : 0x0091, "MIX10": 0x0092, "MIX11": 0x0093, "MIX12": 0x0094, "MIX13": 0x0095, "MIX14": 0x0096, "MIX15": 0x0097, "MIX16": 0x0098,
+    "MT1"  : 0x00A1, "MT2"  : 0x00A2, "MT3"  : 0x00A3, "MT4"  : 0x00A4, "MT5"  : 0x00A5, "MT6"  : 0x00A6, "MT7"  : 0x00A7, "MT8"  : 0x00A8,
 
-    "ST-IN1" : 80, "ST-IN2" : 80, "ST-IN3" : 80, "ST-IN4" : 80, "ST LR" : 80, "MONO" : 80, "MON" : 80
+    "ST-IN1": 0x00B1, "ST-IN2": 0x00B2, "ST-IN3": 0x00B3, "ST-IN4": 0x00B4, "ST LR": 0x00B5, "MONO": 0x00B6, "MON": 0x00B7, "PB L": 0x00B8
 })
 
 MIDI_MIX1_MIX2_SENDS_ON_FADER_CONTROLLERS = bidict({
-    "CH01" : 80, "CH02" : 80, "CH03" : 80, "CH04" : 80, "CH05" : 80, "CH06" : 80, "CH07" : 80, "CH08" : 80,
-    "CH09" : 80, "CH10" : 80, "CH11" : 80, "CH12" : 80, "CH13" : 80, "CH14" : 80, "CH15" : 80, "CH16" : 80,
-    "CH17" : 80, "CH18" : 80, "CH19" : 80, "CH20" : 80, "CH21" : 80, "CH22" : 80, "CH23" : 80, "CH24" : 80,
-    "CH25" : 80, "CH26" : 80, "CH27" : 80, "CH28" : 80, "CH29" : 80, "CH30" : 80, "CH31" : 80, "CH32" : 80,
+    "CH01" : 0x0001, "CH02" : 0x0002, "CH03" : 0x0003, "CH04" : 0x0004, "CH05" : 0x0005, "CH06" : 0x0006, "CH07" : 0x0007, "CH08" : 0x0008,
+    "CH09" : 0x0011, "CH10" : 0x0012, "CH11" : 0x0013, "CH12" : 0x0014, "CH13" : 0x0015, "CH14" : 0x0016, "CH15" : 0x0017, "CH16" : 0x0018,
+    "CH17" : 0x0021, "CH18" : 0x0022, "CH19" : 0x0023, "CH20" : 0x0024, "CH21" : 0x0025, "CH22" : 0x0026, "CH23" : 0x0027, "CH24" : 0x0028,
+    "CH25" : 0x0031, "CH26" : 0x0032, "CH27" : 0x0033, "CH28" : 0x0034, "CH29" : 0x0035, "CH30" : 0x0036, "CH31" : 0x0037, "CH32" : 0x0038,
 
-    "CH33" : 80, "CH34" : 80, "CH35" : 80, "CH36" : 80, "CH37" : 80, "CH38" : 80, "CH39" : 80, "CH40" : 80,
-    "CH41" : 80, "CH42" : 80, "CH43" : 80, "CH44" : 80, "CH45" : 80, "CH46" : 80, "CH47" : 80, "CH48" : 80,
-    "CH49" : 80, "CH50" : 80, "CH51" : 80, "CH52" : 80, "CH53" : 80, "CH54" : 80, "CH55" : 80, "CH56" : 80,
-    "CH57" : 80, "CH58" : 80, "CH59" : 80, "CH60" : 80, "CH61" : 80, "CH62" : 80, "CH63" : 80, "CH64" : 80
+    "CH33" : 0x0041, "CH34" : 0x0042, "CH35" : 0x0043, "CH36" : 0x0044, "CH37" : 0x0045, "CH38" : 0x0046, "CH39" : 0x0047, "CH40" : 0x0048,
+    "CH41" : 0x0051, "CH42" : 0x0052, "CH43" : 0x0053, "CH44" : 0x0054, "CH45" : 0x0055, "CH46" : 0x0056, "CH47" : 0x0057, "CH48" : 0x0058,
+    "CH49" : 0x0061, "CH50" : 0x0062, "CH51" : 0x0063, "CH52" : 0x0064, "CH53" : 0x0065, "CH54" : 0x0066, "CH55" : 0x0067, "CH56" : 0x0068,
+    "CH57" : 0x0071, "CH58" : 0x0072, "CH59" : 0x0073, "CH60" : 0x0074, "CH61" : 0x0075, "CH62" : 0x0076, "CH63" : 0x0077, "CH64" : 0x0078
 })
 
 
 MIDI_MIX16_SEND_TO_MT_CONTROLLERS = bidict({
-    "MT1" : 80, "MT2" : 80, "MT3" : 80, "MT4" : 80, "MT5" : 80, "MT6" : 80, "MT7" : 80, "MT8" : 80
+    "MT1"  : 0x00A1, "MT2"  : 0x00A2, "MT3"  : 0x00A3, "MT4"  : 0x00A4, "MT5"  : 0x00A5, "MT6"  : 0x00A6, "MT7"  : 0x00A7, "MT8"  : 0x00A8
+})
+
+MIDI_ST_LR_SEND_TO_MT_CONTROLLERS = bidict({
+    "MT1"  : 0x00A1, "MT2"  : 0x00A2, "MT3"  : 0x00A3, "MT4"  : 0x00A4, "MT5"  : 0x00A5, "MT6"  : 0x00A6, "MT7"  : 0x00A7, "MT8"  : 0x00A8
+})
+MIDI_MONO_SEND_TO_MT_CONTROLLERS = bidict({
+    "MT1"  : 0x00A1, "MT2"  : 0x00A2, "MT3"  : 0x00A3, "MT4"  : 0x00A4, "MT5"  : 0x00A5, "MT6"  : 0x00A6, "MT7"  : 0x00A7, "MT8"  : 0x00A8
 })
 
 MIDI_MIX16_PATCH_TO_ST_LR = bidict({
-    "ON" : 80, "OFF" : 81
+    "ON"  : 0x0000, "OFF"   : 0x0001
 })
 
 # Patch in for "PC IN2" to ST-IN1,2 channel strips
 MIDI_STIN1_PATCH_IN_CONTROLLERS = bidict({
-    "CH21" : 80, "OFF" : 81
+    "CH21" : 0x0000, "OFF"  : 0x0001
 })
 MIDI_STIN2_PATCH_IN_CONTROLLERS = bidict({
-    "CH21" : 80, "OFF" : 81
+    "CH21" : 0x0000, "OFF"  : 0x0001
 })
 
 MIDI_MON_DEFINE_IN = bidict({
-    "CH31"  :  80, "CH32"  :  80
+    "CH31" : 0x0000, "CH32" : 0x0001
 })
 
-MIDI_ST_LR_SEND_TO_MT_CONTROLLERS = bidict({
-    "MT1" : 80, "MT2" : 80, "MT3" : 80, "MT4" : 80, "MT5" : 80, "MT6" : 80, "MT7" : 80, "MT8" : 80
-})
-MIDI_MONO_SEND_TO_MT_CONTROLLERS = bidict({
-    "MT1" : 80, "MT2" : 80, "MT3" : 80, "MT4" : 80, "MT5" : 80, "MT6" : 80, "MT7" : 80, "MT8" : 80
-})
-
+# mappings for chorus <-> lead automations. wireless mics cycle between 3 states: M.C., chorus and lead
 CHORUS_CH_TO_LEAD_CH_MAPPING = bidict({
     "CH01" : "CH33",    "CH02" : "CH34",    "CH03" : "CH35",    "CH04" : "CH36",    "CH05" : "CH37",
     "CH06" : "CH38",    "CH07" : "CH39",    "CH08" : "CH40",    "CH09" : "CH41",    "CH10" : "CH42"
@@ -172,7 +159,6 @@ def is_on_off_operation(msg):
     if ( MIDI_ON_OFF_CONTROLLERS.inverse[get_nrpn_controller(msg)] ) != None:
         return True
     return False
-    
 
 def is_fade_operation(msg):
     if ( MIDI_FADER_CONTROLLERS.inverse[get_nrpn_controller(msg)] ) != None:
@@ -185,7 +171,6 @@ def get_channel(msg):
 
     if is_on_off_operation(msg):
         return MIDI_ON_OFF_CONTROLLERS.inverse[get_nrpn_controller(msg)]
-
     return None
 
 #we need these in the midi message interpretation
@@ -232,11 +217,18 @@ def process_cc_messages(messages, midi_out):
 
     # Processing for Fade operations
     if is_fade_operation(messages):
-        # We automate muting vocal mics on the monitor mix if they are lowered below -50dB, and snap back to 0dB if they go above -40dB (so a software schmitt trigger)
-        if data < MIDI_FADE_60DB_VALUE:
-            send_nrpn(midi_out, MIDI_MIX1_MIX2_SENDS_ON_FADER_CONTROLLERS[channel], MIDI_FADE_NEGINF_VALUE)
-        elif data > MIDI_FADE_50DB_VALUE and data < MIDI_FADE_40DB_VALUE:
-            send_nrpn(midi_out, MIDI_MIX1_MIX2_SENDS_ON_FADER_CONTROLLERS[channel], MIDI_FADE_0DB_VALUE)
+        # We only process on CH01-CH10 and CH11-CH14
+        if channel in CHORUS_CH_TO_LEAD_CH_MAPPING or channel in WIRELESS_MC_TO_CHR_MAPPING:
+            # We automate muting vocal mics on the monitor mix (for lead and chorus) if they are lowered to negative infinity
+            if data < MIDI_FADE_60DB_VALUE:
+                send_nrpn(midi_out, MIDI_MIX1_MIX2_SENDS_ON_FADER_CONTROLLERS[channel],      MIDI_FADE_NEGINF_VALUE)
+                lead_channel = CHORUS_CH_TO_LEAD_CH_MAPPING[channel]
+                send_nrpn(midi_out, MIDI_MIX1_MIX2_SENDS_ON_FADER_CONTROLLERS[lead_channel], MIDI_FADE_NEGINF_VALUE)
+            elif data < MIDI_FADE_50DB_VALUE:
+                send_nrpn(midi_out, MIDI_MIX1_MIX2_SENDS_ON_FADER_CONTROLLERS[channel],      MIDI_FADE_0DB_VALUE)
+                lead_channel = CHORUS_CH_TO_LEAD_CH_MAPPING[channel]
+                send_nrpn(midi_out, MIDI_MIX1_MIX2_SENDS_ON_FADER_CONTROLLERS[lead_channel], MIDI_FADE_0DB_VALUE)
+                
 
     # Processing for ON/OFF message operations
     if is_on_off_operation(messages):
