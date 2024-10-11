@@ -368,7 +368,9 @@ def main():
     while True:
         #delay is necessary to not overload the CPU or RAM
         time.sleep(0.005)
-        timeout_counter += 1
+        # if there is an incomplete packet in the buffer, increase the timeout
+        if len(cc_messages) > 0:
+            timeout_counter += 1
         #if counter exceeds 0.005 * 20 = 100ms
         if timeout_counter > 20:
             logging.warning("Timeout! Resetting MIDI input buffer")
