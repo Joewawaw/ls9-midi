@@ -155,7 +155,7 @@ def is_valid_nrpn_message(msg):
 def is_on_off_operation(msg):
     # Since the bidict below contains all the on/off channels, we can take message and check if it matches 
     #   a value in the ON_OFF_CONTROLLERS mapping to find out if this message is an on/off operation. 
-    # We use inverse() as the mapping is <ch_name> -> <controller_number>
+    # We use inverse() as the mapping is <ch_name> -> <controller_number> (we want to find ch_name)
     if ( MIDI_ON_OFF_CONTROLLERS.inverse[get_nrpn_controller(msg)] ) != None:
         return True
     return False
@@ -165,6 +165,7 @@ def is_fade_operation(msg):
         return True
     return False
 
+#returns a string correspong to the channel (or mix/mt) of the message
 def get_channel(msg):
     if is_fade_operation(msg):
         return MIDI_FADER_CONTROLLERS.inverse[get_nrpn_controller(msg)]
@@ -177,16 +178,17 @@ def get_channel(msg):
 def combine_bytes(msb, lsb):
     # & 0b1111111 to mask out the 8th bit (MIDI data is 7 bits)
     return ((msb & 0b1111111) << 7) | (lsb & 0b1111111)
-
 #returns multiple values!
 def split_bytes(combined):
     msb = (combined >> 7) & 0b1111111
     lsb = combined & 0b1111111
     return msb, lsb
 
+#this returns the nrpn controller in 0xNNNN hex format. this is passed through one of the bidicts to return a string
 def get_nrpn_controller(msg):
     return combine_bytes(msg[0][2], msg[1][2])
 
+#nrpn data corresponds to fade value or on/off presses
 def get_nrpn_data(msg):
     return combine_bytes(msg[2][2], msg[3][2])
 
@@ -212,31 +214,39 @@ def send_nrpn(midi_output, controller, data):
 
 # Process the 4 collected CC messages
 def process_cc_messages(messages, midi_out):
-    channel = get_channel(messages)
-    data = get_nrpn_data(messages)
+    channel = get_channel(messages) #i.e. the NRPN controller
 
     # Processing for Fade operations
     if is_fade_operation(messages):
+        data = get_nrpn_data(messages)
         # We only process on CH01-CH10 and CH11-CH14
         if channel in CHORUS_CH_TO_LEAD_CH_MAPPING or channel in WIRELESS_MC_TO_CHR_MAPPING:
-            # We automate muting vocal mics on the monitor mix (for lead and chorus) if they are lowered to negative infinity
+            # We automate muting vocal mics on the monitor mix (for lead and chorus) if they are lowered to -60
             if data < MIDI_FADE_60DB_VALUE:
+                logging.debug(f"MIXER IN: CH{channel} fade below -60dB")
+                logging.info(f"MIDI OUT: CH{channel} Send to MIX1,2 @ -inf dB")
                 send_nrpn(midi_out, MIDI_MIX1_MIX2_SENDS_ON_FADER_CONTROLLERS[channel],      MIDI_FADE_NEGINF_VALUE)
                 lead_channel = CHORUS_CH_TO_LEAD_CH_MAPPING[channel]
+                logging.info(f"MIDI OUT: CH{lead_channel} Send to MIX1,2 @ -inf dB")
                 send_nrpn(midi_out, MIDI_MIX1_MIX2_SENDS_ON_FADER_CONTROLLERS[lead_channel], MIDI_FADE_NEGINF_VALUE)
+            # pull back to 0dB if -60dB < data < -50dB
             elif data < MIDI_FADE_50DB_VALUE:
+                logging.debug(f"MIXER IN: CH{channel} fade above -60dB")
+                logging.info(f"MIDI OUT: CH{lead_channel} Send to MIX1,2 @ 0dB")
                 send_nrpn(midi_out, MIDI_MIX1_MIX2_SENDS_ON_FADER_CONTROLLERS[channel],      MIDI_FADE_0DB_VALUE)
                 lead_channel = CHORUS_CH_TO_LEAD_CH_MAPPING[channel]
+                logging.info(f"MIDI OUT: CH{lead_channel} Send to MIX1,2 @ 0dB")
                 send_nrpn(midi_out, MIDI_MIX1_MIX2_SENDS_ON_FADER_CONTROLLERS[lead_channel], MIDI_FADE_0DB_VALUE)
                 
 
     # Processing for ON/OFF message operations
     if is_on_off_operation(messages):
+        data = get_on_off_data(messages)
     #### Automation for CH01-CH10: When any on/off is pressed, the layer 33-64 duplicate is toggled the opposite state
         # if the channel is in the forward values of the mapping, it is one of the original channels. CH01-CH10
         if channel in CHORUS_CH_TO_LEAD_CH_MAPPING:
             #if the channel is switched ON, switch OFF the duplicate channel
-            if get_on_off_data(messages) == True:
+            if  data == True:
                 logging.debug(f"MIXER IN: CH{channel} switched ON")
                 channel = CHORUS_CH_TO_LEAD_CH_MAPPING[channel]
                 logging.info(f"MIDI OUT: CH{channel} OFF")
@@ -249,7 +259,7 @@ def process_cc_messages(messages, midi_out):
         #if the channel is part of the inverse bidict, it is a duplicate channel (i.e. CH33-CH42)
         elif channel in CHORUS_CH_TO_LEAD_CH_MAPPING.inv:
             #if the duplicate channel is switched ON, switch OFF the original channel
-            if get_on_off_data(messages) == True:
+            if data == True:
                 logging.debug(f"MIXER IN: CH{channel} switched ON")
                 channel = CHORUS_CH_TO_LEAD_CH_MAPPING.inv[channel]
                 logging.info(f"MIDI OUT: CH{channel} OFF")
