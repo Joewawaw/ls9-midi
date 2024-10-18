@@ -1,20 +1,42 @@
 #!../bin/python3
-
-# Automation for Yamaha LS9-32 Mixer
-
-#! This code requires a python venv with python-rtmidi and bidict installed.
-#  Here are the steps
-#    apt update
-#    apt install python-venv
-#    python -m venv ls9-midi
-#    cd ls9-midi
-#    git clone https://github.com/joewawaw/ls9-midi src
-#    source bin/activate
-#    pip install python-rtmidi bidict
-#
-# - pip Package Reference:
-#     https://pypi.org/project/python-rtmidi/
-#     https://pypi.org/project/bidict/
+####################################################################################################
+############################## MIDI Automation for Yamaha LS9-32 Mixer #############################
+#### - Usage:
+####   > Run main program
+####       midi_yamaha_ls9.py [verbose]
+####   > Run in console mode: program will echo any NRPN msgs received with controller+data values
+####       midi_yamaha_ls9.py console
+####   
+#### - Description:
+####   This code automates some functions in the Yamaha LS-9 Mixer for the Ottawa Sai Centre
+####   Here are the automations
+####       1. CHR<->WL ON/OFF toggling. when a CHR ch is turned ON/OFF, 
+####          its lead ch will toggle the opposite state
+####       2. WLMC<->WLCHR<->LEADWL swapping
+####          Wireless Mics can be swapped between an M.C. role, a chorus role, or a lead role
+####       3. Monitor Mute mic on fader drop. When the fader for CH01-10 (i.e. vocals) drops below
+####          -60 dB the send of that channel to MIX1/2 will drop to -inf
+####          when it is raised back above -50dB the send to MIX1/2 will go to 0 dB
+####       4. WLTBK Mics. Wireless Mics 3 & 4 can be used as talkback mics 
+####          (via ST-IN3/ST-IN4 ON/OFF), i.e. mics that route to MON bus do not route to ST LR
+####       5. LINE2 routing to BASMNT or LOBBY via ST-IN1/ST-IN2 ON/OFF switches.
+####
+#### - Requirements:
+####   This code requires a python venv with packages python-rtmidi & bidict installed.
+####   Here are the steps
+####       apt update
+####       apt install python-venv
+####       python -m venv ls9-midi
+####       cd ls9-midi
+####       git clone https://github.com/joewawaw/ls9-midi src
+####       source bin/activate
+####       pip install python-rtmidi bidict
+####       cd src
+#### - pip Package Reference:
+####     https://pypi.org/project/python-rtmidi/
+####     https://pypi.org/project/bidict/
+####################################################################################################
+####################################################################################################
 import time
 import logging
 import traceback
@@ -489,7 +511,7 @@ if __name__ == '__main__':
     #run the console mini-app if the argument "console" was passed to the script
     if len(sys.argv) > 1:
         #if "console", "midi" or "shell" is passed as first argument
-        if "console" in sys.argv[1]   or   "midi" in sys.argv[1]   or   "shell" in sys.argv[1]:
+        if "console" in sys.argv[1] or "midi" in sys.argv[1] or "shell" in sys.argv[1]:
             midi_in_console = rtmidi.MidiIn()
             midi_in_console.open_port(0)
             try:
