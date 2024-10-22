@@ -11,19 +11,25 @@
 ####   This code automates some functions in the Yamaha LS-9 Mixer for the Ottawa Sai Centre
 ####   Here are the automations
 ####       1. CHR<->WL ON/OFF toggling.
-####            When a CHR ch is turned ON/OFF, its lead ch will toggle the opposite state
+####            When a CHR ch is turned ON/OFF, its LEAD ch will toggle the opposite state
 ####       2. WLMC<->WLCHR<->LEADWL swapping.
 ####            Wireless Mics can be swapped between an M.C. role, a chorus role, or a lead role
 ####       3. Monitor Mute vocal mic on fader drop to -inf.
 ####            When the fader for CH01-10 (i.e. vocals) drops below -60 dB the send
 ####            of that channel to MIX1/2 will drop to -inf. when it is raised back above
 ####            -50dB the send to MIX1/2 will go to 0 dB
-####       4. WLTBK Mics ON/OFF toggling.
-####            Wireless Mic 4 can be used as talkback mics (via ST-IN3 ON/OFF),
-####            i.e. mics that route to MON bus do not route to ST LR
+####       4. The musician monitors exist in the following states (theres 4 when you consider mains)
+####            Mains ON  | Musician ON:  Yes
+####            Mains ON  | Musician OFF: Yes (PC, USB, LINE2 playback)
+####            Mains OFF | Musician ON:  No 
+####            Mains OFF | Musician OFF: Not necessary, we can achieve this through Mute Group 1 
+####                                      (the monitors are only Wired + WL Non-MC fed).
+####            Hence, we want to "channel link" ST LR's ON/OFF (as it is important to always
+####            switch off musician monitors when ST LR is OFF).
 ####       5. LINE2 routing to BASMNT or LOBBY. (via ST-IN1/ST-IN2 ON/OFF switches)
-####       6. LOUNGE toggle source between MAIN and STREAM.
-####            The lounge speakers can play back either the mains, or the stream output. 
+####            it is also possible to do this with scene recalls.
+####       6. LOUNGE toggle source between MAIN and STREAM. (ST-IN3)
+####            The lounge speakers can play back either the mains, or the stream output
 ####            ST-IN4 ON/OFF switches to select that.
 ####
 #### - Requirements:
@@ -86,46 +92,46 @@ MIDI_ON_OFF_CONTROLLERS = bidict({
 
 #! fill this in
 MIDI_FADER_CONTROLLERS = bidict({
-    "CH01" : 0x0001, "CH02" : 0x0002, "CH03" : 0x0003, "CH04" : 0x0004, "CH05" : 0x0005,
-    "CH06" : 0x0006, "CH07" : 0x0007, "CH08" : 0x0008, "CH09" : 0x0011, "CH10" : 0x0012,
-    "CH11" : 0x0013, "CH12" : 0x0014, "CH13" : 0x0015, "CH14" : 0x0016, "CH15" : 0x0017,
-    "CH16" : 0x0018, "CH17" : 0x0021, "CH18" : 0x0022, "CH19" : 0x0023, "CH20" : 0x0024,
-    "CH21" : 0x0025, "CH22" : 0x0026, "CH23" : 0x0027, "CH24" : 0x0028, "CH25" : 0x0031,
-    "CH26" : 0x0032, "CH27" : 0x0033, "CH28" : 0x0034, "CH29" : 0x0035, "CH30" : 0x0036,
-    "CH31" : 0x0037, "CH32" : 0x0038, "CH33" : 0x0041, "CH34" : 0x0042, "CH35" : 0x0043,
-    "CH36" : 0x0044, "CH37" : 0x0045, "CH38" : 0x0046, "CH39" : 0x0047, "CH40" : 0x0048,
-    "CH41" : 0x0051, "CH42" : 0x0052, "CH43" : 0x0053, "CH44" : 0x0054, "CH45" : 0x0055,
-    "CH46" : 0x0056, "CH47" : 0x0057, "CH48" : 0x0058, "CH49" : 0x0061, "CH50" : 0x0062,
-    "CH51" : 0x0063, "CH52" : 0x0064, "CH53" : 0x0065, "CH54" : 0x0066, "CH55" : 0x0067,
-    "CH56" : 0x0068, "CH57" : 0x0071, "CH58" : 0x0072, "CH59" : 0x0073, "CH60" : 0x0074,
-    "CH61" : 0x0075, "CH62" : 0x0076, "CH63" : 0x0077, "CH64" : 0x0078,
+    "CH01" : 0x0, "CH02" : 0x80, "CH03" : 0x100, "CH04" : 0x180, "CH05" : 0x200,
+    "CH06" : 0x280, "CH07" : 0x300, "CH08" : 0x380, "CH09" : 0x400, "CH10" : 0x480,
+    "CH11" : 0x500, "CH12" : 0x580, "CH13" : 0x600, "CH14" : 0x680, "CH15" : 0x700,
+    "CH16" : 0x780, "CH17" : 0x800, "CH18" : 0x880, "CH19" : 0x900, "CH20" : 0x980,
+    "CH21" : 0xa00, "CH22" : 0xa80, "CH23" : 0xb00, "CH24" : 0xb80, "CH25" : 0xc00,
+    "CH26" : 0xc80, "CH27" : 0xd00, "CH28" : 0xd80, "CH29" : 0xe00, "CH30" : 0xe80,
+    "CH31" : 0xf00, "CH32" : 0xf80, "CH33" : 0x1000, "CH34" : 0x1080, "CH35" : 0x1100,
+    "CH36" : 0x1180, "CH37" : 0x1200, "CH38" : 0x1280, "CH39" : 0x1300, "CH40" : 0x1380,
+    "CH41" : 0x1400, "CH42" : 0x1480, "CH43" : 0x1500, "CH44" : 0x1580, "CH45" : 0x1600,
+    "CH46" : 0x1680, "CH47" : 0x1700, "CH48" : 0x1780, "CH49" : 0x1c00, "CH50" : 0x1c80,
+    "CH51" : 0x1d00, "CH52" : 0x1d80, "CH53" : 0x1e00, "CH54" : 0x1e80, "CH55" : 0x1f00,
+    "CH56" : 0x1f80, "CH57" : 0x2000, "CH58" : 0x2080, "CH59" : 0x2100, "CH60" : 0x2180,
+    "CH61" : 0x2200, "CH62" : 0x2280, "CH63" : 0x2300, "CH64" : 0x2380,
 
-    "MIX1" : 0x0081, "MIX2" : 0x0082, "MIX3" : 0x0083, "MIX4" : 0x0084,
-    "MIX5" : 0x0085, "MIX6" : 0x0086, "MIX7" : 0x0087, "MIX8" : 0x0088,
-    "MIX9" : 0x0091, "MIX10": 0x0092, "MIX11": 0x0093, "MIX12": 0x0094,
-    "MIX13": 0x0095, "MIX14": 0x0096, "MIX15": 0x0097, "MIX16": 0x0098,
-    "MT1"  : 0x00A1, "MT2"  : 0x00A2, "MT3"  : 0x00A3, "MT4"  : 0x00A4,
-    "MT5"  : 0x00A5, "MT6"  : 0x00A6, "MT7"  : 0x00A7, "MT8"  : 0x00A8,
+#! fill this in
+    "MIX1" : 0x3000, "MIX2" : 0x3080, "MIX3" : 0x3100, "MIX4" : 0x3180,
+    "MIX5" : 0x3200, "MIX6" : 0x3280, "MIX7" : 0x3300, "MIX8" : 0x3380,
+    "MIX9" : 0x3400, "MIX10": 0x3480, "MIX11": 0x3500, "MIX12": 0x3580,
+    "MIX13": 0x3600, "MIX14": 0x3680, "MIX15": 0x3700, "MIX16": 0x3780,
+    "MT1"  : 0x3a00, "MT2"  : 0x3a80, "MT3"  : 0x3b00, "MT4"  : 0x3b80,
+    "MT5"  : 0x3c00, "MT6"  : 0x3c80, "MT7"  : 0x3d00, "MT8"  : 0x3d80,
 
-    "ST-IN1": 0x00B1, "ST-IN2": 0x00B2, "ST-IN3": 0x00B3, "ST-IN4": 0x00B4,
-    "ST LR": 0x00B5, "MONO": 0x00B6, "MON": 0x00B7
+    "ST-IN1": 0x1880, "ST-IN2": 0x1900, "ST-IN3": 0x1a00, "ST-IN4": 0x1b00,
+    "ST LR": 0x3e00, "MONO": 0x3451 #, "MON": 0x
 })
 
 # "SOF" means "Sends on Fader"
-MIDI_MIX1_2_SOF_CONTROLLERS = bidict({
-    "CH01" : 0x1858, "CH02" : 0x18d8, "CH03" : 0x1958, "CH04" : 0x19d8, "CH05" : 0x1a58, 
-    "CH06" : 0x1ad8, "CH07" : 0x1b58, "CH08" : 0x1bd8, "CH09" : 0x1c58, "CH10" : 0x1cd8, 
-    "CH11" : 0x1d58, "CH12" : 0x1dd8, "CH13" : 0x1e58, "CH14" : 0x1ed8, "CH15" : 0x1f58, 
-    "CH16" : 0x1fd8, "CH17" : 0x2058, "CH18" : 0x20d8, "CH19" : 0x2158, "CH20" : 0x21d8, 
-    "CH21" : 0x2258, "CH22" : 0x22d8, "CH23" : 0x2358, "CH24" : 0x23d8, "CH25" : 0x2458, 
-    "CH26" : 0x24d8, "CH27" : 0x2558, "CH28" : 0x25d8, "CH29" : 0x2658, "CH30" : 0x26d8, 
-    "CH31" : 0x2758, "CH32" : 0x27d8,
+MIDI_MIX1_SOF_CONTROLLERS = bidict({
+    "CH01" : 0x3551, "CH02" : 0x35d1, "CH03" : 0x3651, "CH04" : 0x36d1, "CH05" : 0x3751, 
+    "CH06" : 0x37d1, "CH07" : 0x3851, "CH08" : 0x38d1, "CH09" : 0x3951, "CH10" : 0x39d1, 
+    "CH11" : 0x3a51, "CH12" : 0x3ad1, "CH13" : 0x3b51, "CH14" : 0x3bd1, "CH15" : 0x3c51, 
+    "CH16" : 0x3cd1, "CH17" : 0x3d51, "CH18" : 0x3dd1, "CH19" : 0x3e51, "CH20" : 0x3ed1, 
+    "CH21" : 0x3f51, "CH22" : 0x3fd1, "CH23" : 0x52, "CH24" : 0xd2, "CH25" : 0x152, 
+    "CH26" : 0x1d2, "CH27" : 0x252, "CH28" : 0x2d2, "CH29" : 0x352, "CH30" : 0x3d2, 
+    "CH31" : 0x452, "CH32" : 0x4d2,
 
-#! this part is incomplete
-    "CH33" : 0x0041, "CH34" : 0x0042, "CH35" : 0x0043, "CH36" : 0x0044, "CH37" : 0x0045, "CH38" : 0x0046, "CH39" : 0x0047, "CH40" : 0x0048,
-    "CH41" : 0x0051, "CH42" : 0x0052, "CH43" : 0x0053, "CH44" : 0x0054, "CH45" : 0x0055, "CH46" : 0x0056, "CH47" : 0x0057, "CH48" : 0x0058,
-    "CH49" : 0x0061, "CH50" : 0x0062, "CH51" : 0x0063, "CH52" : 0x0064, "CH53" : 0x0065, "CH54" : 0x0066, "CH55" : 0x0067, "CH56" : 0x0068,
-    "CH57" : 0x0071, "CH58" : 0x0072, "CH59" : 0x0073, "CH60" : 0x0074, "CH61" : 0x0075, "CH62" : 0x0076, "CH63" : 0x0077, "CH64" : 0x0078
+    "CH33" : 0x552, "CH34" : 0x5d2, "CH35" : 0x652, "CH36" : 0x6d2, "CH37" : 0x752, "CH38" : 0x7d2, "CH39" : 0x852, "CH40" : 0x8d2,
+    "CH41" : 0x952, "CH42" : 0x9d2, "CH43" : 0xa52, "CH44" : 0xad2, "CH45" : 0xb52, "CH46" : 0xbd2, "CH47" : 0xc52, "CH48" : 0xcd2,
+    "CH49" : 0x1152, "CH50" : 0x11d2, "CH51" : 0x1252, "CH52" : 0x12d2, "CH53" : 0x1352, "CH54" : 0x13d2, "CH55" : 0x1452, "CH56" : 0x14d2,
+    "CH57" : 0x2521, "CH58" : 0x25a1, "CH59" : 0x2621, "CH60" : 0x26a1, "CH61" : 0x2721, "CH62" : 0x27a1, "CH63" : 0x2821, "CH64" : 0x28a1
 })
 
 # values to switch a channel ON/OFF
@@ -133,10 +139,10 @@ MIDI_CH_ON_VALUE  = 0x3FFF
 MIDI_CH_OFF_VALUE = 0x0000
 
 # relevant values for fader controlling
-MIDI_FADE_0DB_VALUE =    0xFFFF
-MIDI_FADE_50DB_VALUE =   0xFFFF
-MIDI_FADE_60DB_VALUE =   0xFFFF
-MIDI_FADE_NEGINF_VALUE = 0xFFFF
+MIDI_FADE_0DB_VALUE =    0x3370
+MIDI_FADE_50DB_VALUE =   0xad0
+MIDI_FADE_60DB_VALUE =   0x7b0
+MIDI_FADE_NEGINF_VALUE = 0x0
 
 # controller for STLR / MONO send to MT3
 MIDI_ST_LR_SEND_MT3 = 0xFFFF
@@ -147,8 +153,6 @@ MIDI_STIN1_PATCH_IN26 =    0xFFFF
 MIDI_STIN1_PATCH_IN_OFF =  0xFFFF
 MIDI_STIN2_PATCH_IN26 =    0xFFFF
 MIDI_STIN2_PATCH_IN_OFF =  0xFFFF
-MIDI_STIN3_PATCH_IN32 =    0xFFFF
-MIDI_STIN3_PATCH_IN_OFF =  0xFFFF
 MIDI_IN_PATCH_ON_VALUE =   0xFFFF
 MIDI_IN_PATCH_OFF_VALUE =  0xFFFF
 
@@ -164,15 +168,10 @@ MIDI_DIRECT_PATCH_ON_VALUE =  0x0000
 MIDI_DIRECT_PATCH_OFF_VALUE = 0x0001
 
 # controller + value for toggling the direct on/off button
-CH21_DIRECT_PATCH_ONOFF = 0x0000
-MIDI_DIRECT_ON_VALUE =    0x0000
+CH21_DIRECT_PATCH_ONOFF = 0x2b73
+MIDI_DIRECT_ON_VALUE =    0x3fff
 MIDI_DIRECT_OFF_VALUE =   0x0000
 
-# controller + value for MON bus defined inputs for IN31 & IN32
-MIDI_MON_DEFINE_IN31 =      0xFFFF
-MIDI_MON_DEFINE_IN32 =      0xFFFF
-MIDI_MON_DEFINE_ON_VALUE =  0x0000
-MIDI_MON_DEFINE_OFF_VALUE = 0x0001
 
 # Mappings for chorus <-> lead automations. WL Mics cycle between 3 states: M.C., chorus & lead
 CHORUS_CH_TO_LEAD_CH_MAPPING = bidict({
@@ -262,7 +261,7 @@ def get_on_off_data(msg):
     data = get_nrpn_data(msg)
     if data == MIDI_CH_OFF_VALUE:
         return False
-    elif data == MIDI_CH_ON_VALUE:
+    if data == MIDI_CH_ON_VALUE:
         return True
 
 def send_nrpn(midi_output, controller, data):
@@ -423,27 +422,8 @@ def process_cc_messages(messages, midi_out):
                 send_nrpn(midi_out, CH21_DIRECT_PATCH_ONOFF, MIDI_DIRECT_OFF_VALUE)
                 send_nrpn(midi_out, MIDI_STIN2_PATCH_IN_OFF, MIDI_IN_PATCH_OFF_VALUE)
 
-    #### Automation for ST-IN3 channel: WLTKBK switch
-        elif channel == "ST-IN3":
-            # WLTBK4: Turn OFF WL4 MC,CHR,LEAD & define input IN31 for MON bus & patch in ST-IN3
-            if data is True:
-                logging.info("MIDI OUT: WLTBK4 ON")
-                send_nrpn(midi_out, MIDI_ON_OFF_CONTROLLERS["CH14"], MIDI_CH_OFF_VALUE)
-                send_nrpn(midi_out, MIDI_ON_OFF_CONTROLLERS["CH46"], MIDI_CH_OFF_VALUE)
-                send_nrpn(midi_out, MIDI_ON_OFF_CONTROLLERS["CH50"], MIDI_CH_OFF_VALUE)
-                #send define input patch ON to IN31
-                send_nrpn(midi_out, MIDI_MON_DEFINE_IN32,     MIDI_MON_DEFINE_ON_VALUE)
-                #patch in to ST-IN3's channel strip
-                send_nrpn(midi_out, MIDI_STIN3_PATCH_IN32,    MIDI_IN_PATCH_ON_VALUE)
-            #else, always revert mic back to MC mode, and define OFF for MON bus
-            else:
-                logging.info("MIDI OUT: WLTBK4 OFF")
-                send_nrpn(midi_out, MIDI_ON_OFF_CONTROLLERS["CH14"], MIDI_CH_ON_VALUE)
-                send_nrpn(midi_out, MIDI_MON_DEFINE_IN32,            MIDI_MON_DEFINE_OFF_VALUE)
-                send_nrpn(midi_out, MIDI_STIN3_PATCH_IN32,           MIDI_IN_PATCH_OFF_VALUE)
-
         #LOUNGE toggle between MONO and ST LR
-        elif channel == "ST-IN4":
+        elif channel == "ST-IN3":
             # If ON, route MONO to LOUNGE
             if data is True:
                 logging.info("MIDI OUT: MONO -> LOUNGE")
@@ -537,7 +517,7 @@ def main(log_level=logging.INFO):
 
 if __name__ == '__main__':
     LOG_LEVEL = logging.INFO
-    #run the console mini-app if the argument "console" was passed to the script
+    #run the console mini-app if the argument passed to script
     if len(sys.argv) > 1:
         #if "console", "midi" or "shell" is passed as first argument
         if "console" in sys.argv[1] or "midi" in sys.argv[1] or "shell" in sys.argv[1]:
