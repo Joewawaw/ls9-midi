@@ -285,20 +285,20 @@ def process_cc_messages(messages, midi_out):
         if channel in CHORUS_CH_TO_LEAD_CH_MAPPING:
             # automate muting vocal mics on the MIX1,2 (for lead and chorus) if they are < -60
             if data < MIDI_FADE_60DB_VALUE:
+                lead_ch = CHORUS_CH_TO_LEAD_CH_MAPPING[channel]
                 logging.debug(f"MIXER IN: CH{channel} fade below -60dB")
                 logging.info(f"MIDI OUT: CH{channel} Send to MIX1,2 @ -inf dB")
                 send_nrpn(midi_out, MIDI_MIX1_SOF_CONTROLLERS[channel], MIDI_FADE_NEGINF_VALUE)
 
-                lead_ch = CHORUS_CH_TO_LEAD_CH_MAPPING[channel]
                 logging.info(f"MIDI OUT: CH{lead_channel} Send to MIX1,2 @ -inf dB")
                 send_nrpn(midi_out, MIDI_MIX1_SOF_CONTROLLERS[lead_ch], MIDI_FADE_NEGINF_VALUE)
             # pull back to 0dB if -60dB < data < -50dB
             elif data < MIDI_FADE_50DB_VALUE:
+                lead_ch = CHORUS_CH_TO_LEAD_CH_MAPPING[channel]
                 logging.debug(f"MIXER IN: CH{channel} fade above -60dB")
                 logging.info(f"MIDI OUT: CH{lead_channel} Send to MIX1,2 @ 0 dB")
                 send_nrpn(midi_out, MIDI_MIX1_SOF_CONTROLLERS[channel], MIDI_FADE_0DB_VALUE)
 
-                lead_ch = CHORUS_CH_TO_LEAD_CH_MAPPING[channel]
                 logging.info(f"MIDI OUT: CH{lead_channel} Send to MIX1,2 @ 0 dB")
                 send_nrpn(midi_out, MIDI_MIX1_SOF_CONTROLLERS[lead_ch], MIDI_FADE_0DB_VALUE)
 
@@ -311,26 +311,26 @@ def process_cc_messages(messages, midi_out):
         if channel in CHORUS_CH_TO_LEAD_CH_MAPPING:
             #if the channel is switched ON, switch OFF the duplicate channel
             if  data is True:
-                logging.debug(f"MIXER IN: CH{channel} switched ON")
                 channel = CHORUS_CH_TO_LEAD_CH_MAPPING[channel]
+                logging.debug(f"MIXER IN: CH{channel} switched ON")
                 logging.info(f"MIDI OUT: CH{channel} OFF")
                 send_nrpn(midi_out, channel, MIDI_CH_OFF_VALUE)
             else:
-                logging.debug(f"MIXER IN: CH{channel} switched OFF")
                 channel = CHORUS_CH_TO_LEAD_CH_MAPPING[channel]
+                logging.debug(f"MIXER IN: CH{channel} switched OFF")
                 logging.info(f"MIDI OUT: CH{channel} ON")
                 send_nrpn(midi_out, channel, MIDI_CH_ON_VALUE)
         #if the channel is part of the inverse bidict, it is a duplicate channel (i.e. CH33-CH42)
         elif channel in CHORUS_CH_TO_LEAD_CH_MAPPING.inv:
             #if the duplicate channel is switched ON, switch OFF the original channel
             if data is True:
-                logging.debug(f"MIXER IN: CH{channel} switched ON")
                 channel = CHORUS_CH_TO_LEAD_CH_MAPPING.inv[channel]
+                logging.debug(f"MIXER IN: CH{channel} switched ON")
                 logging.info(f"MIDI OUT: CH{channel} OFF")
                 send_nrpn(midi_out, channel, MIDI_CH_OFF_VALUE)
             else:
-                logging.debug(f"MIXER IN: CH{channel} switched OFF")
                 channel = CHORUS_CH_TO_LEAD_CH_MAPPING.inv[channel]
+                logging.debug(f"MIXER IN: CH{channel} switched OFF")
                 logging.info(f"MIDI OUT: CH{channel} ON")
                 send_nrpn(midi_out, channel, MIDI_CH_ON_VALUE)
 
