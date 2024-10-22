@@ -217,6 +217,7 @@ def is_on_off_operation(msg):
     #   if it matches a value in the ON_OFF_CONTROLLERS mapping to find out if this
     #   message is an on/off operation.
     # We use inverse() as the mapping is <ch_name> -> <controller_number> (we want to find ch_name)
+    logging.info(get_nrpn_controller(msg))
     if ( MIDI_ON_OFF_CONTROLLERS.inverse[get_nrpn_controller(msg)] ) is not None:
         return True
     return False
@@ -286,20 +287,20 @@ def process_cc_messages(messages, midi_out):
             if data < MIDI_FADE_60DB_VALUE:
                 logging.debug(f"MIXER IN: CH{channel} fade below -60dB")
                 logging.info(f"MIDI OUT: CH{channel} Send to MIX1,2 @ -inf dB")
-                send_nrpn(midi_out, MIDI_MIX1_2_SOF_CONTROLLERS[channel], MIDI_FADE_NEGINF_VALUE)
+                send_nrpn(midi_out, MIDI_MIX1_SOF_CONTROLLERS[channel], MIDI_FADE_NEGINF_VALUE)
 
                 lead_ch = CHORUS_CH_TO_LEAD_CH_MAPPING[channel]
                 logging.info(f"MIDI OUT: CH{lead_channel} Send to MIX1,2 @ -inf dB")
-                send_nrpn(midi_out, MIDI_MIX1_2_SOF_CONTROLLERS[lead_ch], MIDI_FADE_NEGINF_VALUE)
+                send_nrpn(midi_out, MIDI_MIX1_SOF_CONTROLLERS[lead_ch], MIDI_FADE_NEGINF_VALUE)
             # pull back to 0dB if -60dB < data < -50dB
             elif data < MIDI_FADE_50DB_VALUE:
                 logging.debug(f"MIXER IN: CH{channel} fade above -60dB")
                 logging.info(f"MIDI OUT: CH{lead_channel} Send to MIX1,2 @ 0 dB")
-                send_nrpn(midi_out, MIDI_MIX1_2_SOF_CONTROLLERS[channel], MIDI_FADE_0DB_VALUE)
+                send_nrpn(midi_out, MIDI_MIX1_SOF_CONTROLLERS[channel], MIDI_FADE_0DB_VALUE)
 
                 lead_ch = CHORUS_CH_TO_LEAD_CH_MAPPING[channel]
                 logging.info(f"MIDI OUT: CH{lead_channel} Send to MIX1,2 @ 0 dB")
-                send_nrpn(midi_out, MIDI_MIX1_2_SOF_CONTROLLERS[lead_ch], MIDI_FADE_0DB_VALUE)
+                send_nrpn(midi_out, MIDI_MIX1_SOF_CONTROLLERS[lead_ch], MIDI_FADE_0DB_VALUE)
 
     # Processing for ON/OFF message operations
     if is_on_off_operation(messages):
