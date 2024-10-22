@@ -218,12 +218,12 @@ def is_on_off_operation(msg):
     #   message is an on/off operation.
     # We use inverse() as the mapping is <ch_name> -> <controller_number> (we want to find ch_name)
     logging.info(get_nrpn_controller(msg))
-    if ( MIDI_ON_OFF_CONTROLLERS.inverse[get_nrpn_controller(msg)] ) is not None:
+    if get_nrpn_controller(msg) in MIDI_ON_OFF_CONTROLLERS.inverse:
         return True
     return False
 
 def is_fade_operation(msg):
-    if ( MIDI_FADER_CONTROLLERS.inverse[get_nrpn_controller(msg)] ) is not None:
+    if get_nrpn_controller(msg) in MIDI_FADER_CONTROLLERS.inverse:
         return True
     return False
 
