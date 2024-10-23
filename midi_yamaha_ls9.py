@@ -290,16 +290,16 @@ def process_cc_messages(messages, midi_out):
                 logging.info(f"MIDI OUT: CH{channel} Send to MIX1,2 @ -inf dB")
                 send_nrpn(midi_out, MIDI_MIX1_SOF_CONTROLLERS[channel], MIDI_FADE_NEGINF_VALUE)
 
-                logging.info(f"MIDI OUT: CH{lead_channel} Send to MIX1,2 @ -inf dB")
+                logging.info(f"MIDI OUT: CH{lead_ch} Send to MIX1,2 @ -inf dB")
                 send_nrpn(midi_out, MIDI_MIX1_SOF_CONTROLLERS[lead_ch], MIDI_FADE_NEGINF_VALUE)
             # pull back to 0dB if -60dB < data < -50dB
             elif data < MIDI_FADE_50DB_VALUE:
                 lead_ch = CHORUS_CH_TO_LEAD_CH_MAPPING[channel]
                 logging.debug(f"MIXER IN: CH{channel} fade above -60dB")
-                logging.info(f"MIDI OUT: CH{lead_channel} Send to MIX1,2 @ 0 dB")
+                logging.info(f"MIDI OUT: CH{lead_ch} Send to MIX1,2 @ 0 dB")
                 send_nrpn(midi_out, MIDI_MIX1_SOF_CONTROLLERS[channel], MIDI_FADE_0DB_VALUE)
 
-                logging.info(f"MIDI OUT: CH{lead_channel} Send to MIX1,2 @ 0 dB")
+                logging.info(f"MIDI OUT: CH{lead_ch} Send to MIX1,2 @ 0 dB")
                 send_nrpn(midi_out, MIDI_MIX1_SOF_CONTROLLERS[lead_ch], MIDI_FADE_0DB_VALUE)
 
     # Processing for ON/OFF message operations
