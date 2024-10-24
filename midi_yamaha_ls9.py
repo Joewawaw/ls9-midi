@@ -265,6 +265,7 @@ def process_cc_messages(messages, midi_out):
         # pull back to 0dB if -60dB < data < -40dB
         elif data < MIDI_FADE_40DB_VALUE:
             if channel in CHORUS_CH_TO_LEAD_CH_MAPPING or channel in WIRELESS_MC_TO_CHR_MAPPING:
+                lead_ch = CHORUS_CH_TO_LEAD_CH_MAPPING[channel]
                 logging.debug(f"MIXER IN: {channel} fade above -40dB")
                 logging.info(f"MIDI OUT: {channel} Send to MIX1,2 @ 0 dB")
                 logging.info(f"MIDI OUT: {lead_ch} Send to MIX1,2 @ 0 dB")
