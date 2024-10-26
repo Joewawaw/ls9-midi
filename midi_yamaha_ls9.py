@@ -200,16 +200,6 @@ MIDI_NRPN_BYTE_2 = 0x63
 MIDI_NRPN_BYTE_3 = 0x06
 MIDI_NRPN_BYTE_4 = 0x26
 
-#this global var holds the first 14 channel's on/off state (based on fader level)
-#it is needed for fader muting/unmuting
-channel_states = {
-    "CH01": "OFF",  "CH02": "OFF",  "CH03": "OFF",  "CH04": "OFF",  "CH05": "OFF",
-    "CH06": "OFF",  "CH07": "OFF",  "CH08": "OFF",  "CH09": "OFF",  "CH10": "OFF",
-    "CH11": "OFF",  "CH12": "OFF",  "CH13": "OFF",  "CH14": "OFF"
-}
-
-WLTBK_state = "OFF"
-
 ####################################################################################################
 # NPRN message structure for Yamaha LS9 (messages are 7 bits):
 # CC cmd #   Byte 1   Byte 2   Byte 3
@@ -287,8 +277,19 @@ def send_nrpn(midi_output, controller, data):
     midi_output.send_message([MIDI_CC_CMD_BYTE, MIDI_NRPN_BYTE_3,  data1])
     midi_output.send_message([MIDI_CC_CMD_BYTE, MIDI_NRPN_BYTE_4,  data2])
 
+#these global vars holds the first 14 channel's on/off state (based on fader level)
+#it is needed for fader muting/unmuting
+channel_states = {
+    "CH01": "OFF",  "CH02": "OFF",  "CH03": "OFF",  "CH04": "OFF",  "CH05": "OFF",
+    "CH06": "OFF",  "CH07": "OFF",  "CH08": "OFF",  "CH09": "OFF",  "CH10": "OFF",
+    "CH11": "OFF",  "CH12": "OFF",  "CH13": "OFF",  "CH14": "OFF"
+}
+wltbk_state = "OFF"
+
 # Process the 4 collected CC messages
 def process_cc_messages(messages, midi_out):
+    global channel_states
+    global wltbk_state
     channel = get_channel(messages) #i.e. the NRPN controller
     # Processing for Fade operations
     if is_fade_operation(messages):
@@ -319,7 +320,7 @@ def process_cc_messages(messages, midi_out):
                     send_nrpn(midi_out, MIDI_MIX1_SOF_CTRLS[wl_chr_ch],  MIDI_FADE_NEGINF_VALUE)
                     send_nrpn(midi_out, MIDI_MIX1_SOF_CTRLS[wl_lead_ch], MIDI_FADE_NEGINF_VALUE)
 
-        # pull back to 0dB if > 50 dB. channel[states] prevents retrigger until -60dB
+        # pull back to 0dB if > 50 dB. channel[states] prevents retrigger until < -60dB
         # hence it is a schmitt trigger!
         elif data > MIDI_FADE_50DB_VALUE:
             if channel in CHORUS_TO_LEAD_MAPPING:
@@ -364,8 +365,8 @@ def process_cc_messages(messages, midi_out):
         #### Automation for Wireless Mics switched ON
             # If Wireless MC CH N switched ON, then turn off WLCHR N & LEADWL N
             elif channel in WIRELESS_MC_TO_CHR_MAPPING:
-                #we disable toggling if WLTBK_state is ON and the current channel is 13 or 14
-                if WLTBK_state == "OFF" or (WLTBK_state=="ON" and channel!="CH13" and channel!="CH14"):
+                #we disable toggling if wltbk_state is ON and the current channel is 13 or 14
+                if wltbk_state == "OFF" or (wltbk_state=="ON" and channel!="CH13" and channel!="CH14"):
                     chr_channel =  WIRELESS_MC_TO_CHR_MAPPING[channel]
                     lead_channel = WIRELESS_MC_TO_LEAD_MAPPING[channel]
                     logging.info(f"MIDI OUT: {lead_channel} OFF & CH {chr_channel} OFF")
@@ -378,7 +379,7 @@ def process_cc_messages(messages, midi_out):
 
             # If LEADWL CH N switched ON, then turn off WLCHR N & WLMC N
             elif channel in WIRELESS_MC_TO_LEAD_MAPPING.inv:
-                if WLTBK_state == "OFF" or (WLTBK_state=="ON" and channel!="CH45" and channel!="CH46"):
+                if wltbk_state == "OFF" or (wltbk_state=="ON" and channel!="CH45" and channel!="CH46"):
                     mc_channel =  WIRELESS_MC_TO_LEAD_MAPPING.inv[channel]
                     chr_channel = WIRELESS_CHR_TO_LEAD_MAPPING.inv[channel]
                     logging.info(f"MIDI OUT: {chr_channel} OFF & CH {mc_channel} OFF")
@@ -389,7 +390,7 @@ def process_cc_messages(messages, midi_out):
 
             # If WLCHR CH N switched ON, then turn off LEADWL N & WLMC N
             elif channel in WIRELESS_CHR_TO_LEAD_MAPPING:
-                if WLTBK_state == "OFF" or (WLTBK_state=="ON" and channel!="CH49" and channel!="CH50"):
+                if wltbk_state == "OFF" or (wltbk_state=="ON" and channel!="CH49" and channel!="CH50"):
                     mc_channel =   WIRELESS_MC_TO_CHR_MAPPING.inv[channel]
                     lead_channel = WIRELESS_CHR_TO_LEAD_MAPPING[channel]
                     logging.info(f"MIDI OUT: {mc_channel} OFF & CH {lead_channel} OFF")
@@ -423,7 +424,7 @@ def process_cc_messages(messages, midi_out):
         #### Automation for toggling WLTBK3&4 ON/OFF
             elif channel == "ST-IN4":
                 logging.info("MIDI OUT: WLTBK3 & WLTBK4 ON")
-                WLTBK_state = "ON" # we need this global var to disable WL MC/CHR/LEAD toggling
+                wltbk_state = "ON" # we need this global var to disable WL MC/CHR/LEAD toggling
                 #turn off all alternate channels for wireless mics; they all route to ST L/R
                 send_nrpn(midi_out, MIDI_ON_OFF_CTRLS["CH13"], MIDI_CH_OFF_VALUE)
                 send_nrpn(midi_out, MIDI_ON_OFF_CTRLS["CH14"], MIDI_CH_OFF_VALUE)
@@ -474,7 +475,7 @@ def process_cc_messages(messages, midi_out):
                 send_nrpn(midi_out, MIDI_ON_OFF_CTRLS[lead_channel], MIDI_CH_ON_VALUE)
                 send_nrpn(midi_out, MIDI_ON_OFF_CTRLS[mc_channel],   MIDI_CH_OFF_VALUE)
 
-        #### Automation for MIX1 or MIX2 switched ON (switch OFF ST LR)
+        #### Automation for MIX1 or MIX2 switched OFF (switch OFF MIX1)
             elif channel == "ST LR":
                 send_nrpn(midi_out, MIDI_ON_OFF_CTRLS["MIX1"], MIDI_CH_OFF_VALUE)
 
@@ -498,7 +499,7 @@ def process_cc_messages(messages, midi_out):
         #### Automation for toggling WLTBK3&4 ON/OFF
             elif channel == "ST-IN4":
                 logging.info("MIDI OUT: WLTBK3 & WLTBK4 OFF")
-                WLTBK_state = "OFF" # we need this global var to disable WL MC/CHR/LEAD toggling
+                wltbk_state = "OFF" # we need this global var to disable WL MC/CHR/LEAD toggling
                 #turn on only MC channels
                 send_nrpn(midi_out, MIDI_ON_OFF_CTRLS["CH13"], MIDI_CH_ON_VALUE)
                 send_nrpn(midi_out, MIDI_ON_OFF_CTRLS["CH14"], MIDI_CH_ON_VALUE)
