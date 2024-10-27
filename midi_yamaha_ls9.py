@@ -529,7 +529,7 @@ def midi_console(midi_in):
         midi_msg = midi_in.get_message()
         if midi_msg is not None:
             messages = midi_msg[0]
-            logging.info(f"{messages=}")
+            logging.debug(f"{messages=}")
 
             if messages[0] == MIDI_CC_CMD_BYTE:
                 cc_messages.append(messages)
