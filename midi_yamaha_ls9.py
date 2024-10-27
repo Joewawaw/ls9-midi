@@ -547,8 +547,8 @@ def main(log_level=logging.INFO):
     midi_in =  rtmidi.MidiIn()
     midi_out = rtmidi.MidiOut()
 
-    midi_in.open_port(1)
-    midi_out.open_port(1)
+    midi_in.open_port(0)
+    midi_out.open_port(0)
 
     # time is given in ISO8601 date format
     logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', level=log_level)
