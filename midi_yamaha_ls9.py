@@ -106,7 +106,7 @@ MIDI_ON_OFF_CTLRS = bidict({
     "MT1"  : 0x150c, "MT2"  : 0x158c, "MT3"  : 0x160c, "MT4"  : 0x168c,
     "MT5"  : 0x170c, "MT6"  : 0x178c, "MT7"  : 0x180c, "MT8"  : 0x188c,
 
-    "ST-IN1": 0x330b, "ST-IN2": 0x340b, "ST-IN3": 0x350b, "ST-IN4": 0x360b,
+    "ST-IN1": 0x338b, "ST-IN2": 0x340b, "ST-IN3": 0x350b, "ST-IN4": 0x360b,
     "ST LR":  0x190c, "MONO":   0x1758
 })
 
