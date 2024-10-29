@@ -171,10 +171,6 @@ MIDI_MIX16_SEND_TO_MT1 = 0x68a
 MIDI_STLR_SEND_TO_MT2  = 0x140a
 MIDI_MIX16_SEND_TO_MT2 = 0x118a
 
-MIDI_MON_DEFINE_IN31_32 =   0xffff
-MIDI_MON_DEFINE_ON_VALUE =  0xFFFF
-MIDI_MON_DEFINE_OFF_VALUE = 0xFFFF
-
 # Mappings for chorus <-> lead automations. WL Mics cycle between 3 states: M.C., chorus & lead
 CHORUS_TO_LEAD_MAPPING = bidict({
     "CH01" : "CH33",  "CH02" : "CH34",  "CH03" : "CH35",  "CH04" : "CH36",  "CH05" : "CH37",
@@ -288,7 +284,7 @@ channel_states = {
 wltbk_state = "OFF"
 
 # Process the 4 collected CC messages
-def process_cc_messages(messages, midi_out):
+def process_midi_messages(messages, midi_out):
     global channel_states
     global wltbk_state
     channel = get_channel(messages) #i.e. the NRPN controller
@@ -477,20 +473,15 @@ def process_cc_messages(messages, midi_out):
                     wltbk_state = "ON" # we need this global var to disable WL MC/CHR/LEAD toggling
                     out_data_ch13 = MIDI_CH_OFF_VALUE
                     out_data_ch14 = MIDI_CH_OFF_VALUE
-                    #enable IN31/IN32 of the DEFINE input section of the MON (Monitor) Bus
-                    mon_define_data = MIDI_MON_DEFINE_ON_VALUE
                 else:
                     logging.info("MIDI OUT: WLTBK3 & WLTBK4 OFF")
                     wltbk_state = "OFF"
                     #turn on only MC channels (and turn off all alt channels below)
                     out_data_ch13 = MIDI_CH_ON_VALUE
                     out_data_ch14 = MIDI_CH_ON_VALUE
-                    #disable IN31/IN32 of the DEFINE input section of the MON (Monitor) Bus
-                    mon_define_data = MIDI_MON_DEFINE_OFF_VALUE
 
                 send_nrpn(midi_out, MIDI_ON_OFF_CTLRS["CH13"], out_data_ch13)
                 send_nrpn(midi_out, MIDI_ON_OFF_CTLRS["CH14"], out_data_ch14)
-                send_nrpn(midi_out, MIDI_MON_DEFINE_IN31_32,   mon_define_data)
                 #turn off all alt channels for wireless mics 3 & 4; as they all route to ST L/R
                 send_nrpn(midi_out, MIDI_ON_OFF_CTLRS["CH46"], MIDI_CH_OFF_VALUE)
                 send_nrpn(midi_out, MIDI_ON_OFF_CTLRS["CH47"], MIDI_CH_OFF_VALUE)
@@ -501,7 +492,7 @@ def midi_console(midi_in):
     logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
     logging.info("MIDI Console. Echoing all incoming MIDI NRPN messages (controller+data).\n\
                  Press CTRL+C to exit")
-    cc_messages = []
+    midi_messages = []
     counter = 0
     while True:
         time.sleep(0.01)
@@ -517,13 +508,13 @@ def midi_console(midi_in):
             logging.debug(f"{messages=}")
 
             if messages[0] == MIDI_CC_CMD_BYTE:
-                cc_messages.append(messages)
-            if len(cc_messages) == 4:
-                controller = hex(get_nrpn_controller(cc_messages))
-                data =       hex(get_nrpn_data(cc_messages))
+                midi_messages.append(messages)
+            if len(midi_messages) == 4:
+                controller = hex(get_nrpn_controller(midi_messages))
+                data =       hex(get_nrpn_data(midi_messages))
                 logging.info(f"Controller\t{controller}\t\tData\t{data}")
                 counter = 0
-                cc_messages.clear()
+                midi_messages.clear()
 
 
 #This code is event based, it will only trigger upon receiving a message from the mixer
@@ -540,18 +531,18 @@ def main(log_level=logging.INFO):
 
     logging.info("Waiting for incoming MIDI NRPN messages...")
 
-    cc_messages = []
+    midi_messages = []
     timeout_counter = 0
     while True:
         #delay is necessary to not overload the CPU or RAM
         time.sleep(0.005)
         # if there is an incomplete packet in the buffer, increase the timeout
-        if len(cc_messages) > 0:
+        if len(midi_messages) > 0:
             timeout_counter += 1
         #if counter exceeds 0.005 * 20 = 100ms
         if timeout_counter > 20:
             logging.warning("Timeout! Resetting MIDI input buffer")
-            cc_messages.clear()
+            midi_messages.clear()
             timeout_counter = 0
 
         # Get the raw data from the midi get_message function.
@@ -562,18 +553,19 @@ def main(log_level=logging.INFO):
             messages = midi_msg[0]
             # Filter out everything but CC (Control Change) commands
             if messages[0] == MIDI_CC_CMD_BYTE:
-                cc_messages.append(messages)
+                midi_messages.append(messages)
                 logging.debug(f"Received CC command {midi_msg[0]} @{midi_msg[1]}")
             # Once we have 4 CC messages, process them
-            if len(cc_messages) == 4:
+            if len(midi_messages) == 4:
                 try:
-                    process_cc_messages(cc_messages, midi_out)
-                except ValueError as e:
+                    process_midi_messages(midi_messages, midi_out)
+                # we will catch all exceptions to make this system a big more rugged.
+                except Exception as e:
                     error_message = traceback.format_exc()
                     logging.error(error_message)
                     logging.error(str(e))
                 finally:
-                    cc_messages.clear()  # Clear the list for the next batch of 4 messages
+                    midi_messages.clear()  # Clear the list for the next batch of 4 messages
                     timeout_counter = 0
 
 if __name__ == '__main__':
