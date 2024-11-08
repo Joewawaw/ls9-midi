@@ -505,4 +505,4 @@ def main(port, console, verbose):
             sys.exit()
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    main()
