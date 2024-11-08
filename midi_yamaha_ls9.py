@@ -383,7 +383,7 @@ def process_midi_messages(messages, midi_out):
 # this is a small tool to echo any NRPN-formatted CC commands
 def midi_console(midi_port, console):
     midi_nrpn_console_messages = []
-    timeout_counter = 0
+    timeout_counter = {'count': 0}
     def midi_nrpn_callback(event, unused):
         message, deltatime = event
 
@@ -394,7 +394,7 @@ def midi_console(midi_port, console):
             data =       get_nrpn_data(midi_nrpn_console_messages)
             logging.info(f'NRPN Message    Controller  {hex(controller)}\tData  {hex(data)}')
             midi_nrpn_console_messages.clear()
-            timeout_counter = 0
+            timeout_counter['count'] = 0
 
     def midi_cc_callback(event, unused):
         message, deltatime = event
@@ -417,13 +417,13 @@ def midi_console(midi_port, console):
     try:
         while True:
             time.sleep(0.1)
-            timeout_counter += 1
-            if timeout_counter == 10:
+            timeout_counter['count'] += 1
+            if timeout_counter['count'] == 10:
                 print()
-            if len(midi_nrpn_console_messages) < 4 and timeout_counter > 20:
+            if len(midi_nrpn_console_messages) < 4 and timeout_counter['count'] > 20:
                 logging.warning(f'Timeout on midi input buffer! {midi_nrpn_console_messages=}')
                 midi_nrpn_console_messages.clear()
-                timeout_counter = 0
+                timeout_counter['count'] = 0
     except KeyboardInterrupt:
         print('Exiting...')
     finally:
