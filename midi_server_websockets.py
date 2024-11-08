@@ -439,7 +439,7 @@ async def main(port, console, verbose):
     while True:
         try:
             #delay is necessary to not overload the CPU or RAM
-            asyncio.sleep(0.005)
+            await asyncio.sleep(0.005)
             # if there is an incomplete packet in the buffer, increase the timeout
             if len(midi_messages) > 0:
                 timeout_counter[0] += 1
