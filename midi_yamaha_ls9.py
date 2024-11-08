@@ -431,7 +431,7 @@ def midi_cc_console(midi_in):
 
 
 @click.command()
-@click.option('-v', '--verbose', isFlag=True, default=False, help='set logging level to DEBUG')
+@click.option('-v', '--verbose', is_flag=True, default=False, help='set logging level to DEBUG')
 @click.option('-c', '--console', default=None, type=str, help='run in console mode [CC or NRPN]')
 @click.option('-p', '--port', default=0, show_default=True, type=int, help='specify MIDI port number')
 
