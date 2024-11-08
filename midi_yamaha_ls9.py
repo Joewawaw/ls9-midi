@@ -420,9 +420,10 @@ def midi_console(midi_port, console):
             timeout_counter['count'] += 1
             if timeout_counter['count'] == 10:
                 print()
-            if len(midi_nrpn_console_messages) < 4 and timeout_counter['count'] > 20:
-                logging.warning(f'Timeout on midi input buffer! {midi_nrpn_console_messages=}')
-                midi_nrpn_console_messages.clear()
+            if timeout_counter['count'] > 15:
+                if len(midi_nrpn_console_messages) > 0 and len(midi_nrpn_console_messages) < 4:
+                    logging.warning(f'Timeout on midi input buffer! data: {midi_nrpn_console_messages}')
+                    midi_nrpn_console_messages.clear()
                 timeout_counter['count'] = 0
     except KeyboardInterrupt:
         print('Exiting...')
