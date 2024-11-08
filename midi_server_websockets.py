@@ -399,7 +399,8 @@ def main(port, console, verbose):
 async def async_main(port, console, verbose):
     #if the console flag was passed, run one of the mini-tools instead of the main program (automations)
     if console is not None:
-        midi_console(port, console)
+        await midi_console(port, console)
+        return
 
     if verbose is True:
         log_level = logging.DEBUG
