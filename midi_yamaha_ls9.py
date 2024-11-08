@@ -152,6 +152,20 @@ MIDI_MIX1_SOF_CTLRS = bidict({
     "CH61" : 0x2721, "CH62" : 0x27a1, "CH63" : 0x2821, "CH64" : 0x28a1
 })
 
+MIDI_MT5_SOF_CTRLS = bidict({
+    "MIX1" : 0xb0c,  "MIX2" : 0xb8c,  "MIX3" : 0xc0c,  "MIX4" : 0xc8c,
+    "MIX5" : 0xd0c,  "MIX6" : 0xd8c,  "MIX7" : 0xe0c,  "MIX8" : 0xe8c,
+    "MIX9" : 0xf0c,  "MIX10": 0xf8c,  "MIX11": 0x100c, "MIX12": 0x108c,
+    "MIX13": 0x110c, "MIX14": 0x118c, "MIX15": 0x120c, "MIX16": 0x128c
+})
+
+MIDI_MT6_SOF_CTRLS = bidict({
+    "MIX1" : 0xb0c,  "MIX2" : 0xb8c,  "MIX3" : 0xc0c,  "MIX4" : 0xc8c,
+    "MIX5" : 0xd0c,  "MIX6" : 0xd8c,  "MIX7" : 0xe0c,  "MIX8" : 0xe8c,
+    "MIX9" : 0xf0c,  "MIX10": 0xf8c,  "MIX11": 0x100c, "MIX12": 0x108c,
+    "MIX13": 0x110c, "MIX14": 0x118c, "MIX15": 0x120c, "MIX16": 0x128c
+})
+
 # values to switch a channel ON/OFF
 MIDI_CH_ON_VALUE  = 0x3FFF
 MIDI_CH_OFF_VALUE = 0x0000
@@ -488,7 +502,7 @@ def process_midi_messages(messages, midi_out):
                 send_nrpn(midi_out, MIDI_ON_OFF_CTLRS["CH49"], MIDI_CH_OFF_VALUE)
                 send_nrpn(midi_out, MIDI_ON_OFF_CTLRS["CH50"], MIDI_CH_OFF_VALUE)
 
-def midi_console(midi_in):
+def midi_nrpn_console(midi_in):
     logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
     logging.info("MIDI Console. Echoing all incoming MIDI NRPN messages (controller+data).\n\
                  Press CTRL+C to exit")
@@ -515,6 +529,28 @@ def midi_console(midi_in):
                 logging.info(f"Controller\t{controller}\t\tData\t{data}")
                 counter = 0
                 midi_messages.clear()
+
+
+def midi_cc_console(midi_in):
+    logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
+    logging.info("MIDI CC Console. Echoing all incoming single packet MIDI CC messages.\n\
+                 Press CTRL+C to exit")
+    midi_messages = []
+    counter = 0
+    while True:
+        time.sleep(0.01)
+
+        counter += 1
+        if counter >= 100: # every 1s echo a blank line
+            print()
+            counter = 0
+
+        midi_msg = midi_in.get_message()
+        if midi_msg is not None:
+            messages = midi_msg[0]
+            counter = 0
+            if messages[0] == MIDI_CC_CMD_BYTE:
+                logging.info(f"CC Message\t{messages[0]}")
 
 
 #This code is event based, it will only trigger upon receiving a message from the mixer
@@ -577,12 +613,23 @@ if __name__ == '__main__':
             midi_in_console = rtmidi.MidiIn()
             midi_in_console.open_port(0)
             try:
-                midi_console(midi_in_console)
+                midi_nrpn_console(midi_in_console)
             except KeyboardInterrupt:
                 print("Exiting...")
             finally:
                 midi_in_console.close_port()
                 sys.exit()
+        if "cc" in sys.argv[1]:
+            midi_in_cc_console = rtmidi.MidiIn()
+            midi_in_cc_console.open_port(0)
+            try:
+                midi_cc_console(midi_in_cc_console)
+            except KeyboardInterrupt:
+                print("Exiting...")
+            finally:
+                midi_in_cc_console.close_port()
+                sys.exit()
+        
         # if -v, --verbose, or similar is passed as only argument
         elif "-v" in sys.argv[1] or "verbose" in sys.argv[1] or "debug" in sys.argv[1]:
             LOG_LEVEL = logging.DEBUG
