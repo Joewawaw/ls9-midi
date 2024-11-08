@@ -1,3 +1,5 @@
+# yamaha ls9 MIDI NRPN controller + data values. python constants file
+from bidict import bidict
 
 #### Constants
 ON_OFF_CTLRS = bidict({
