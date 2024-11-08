@@ -386,9 +386,9 @@ def midi_nrpn_callback(event, unused):
     if message[0] == MIDI_LS9.CC_CMD_BYTE:
         midi_nrpn_console_messages.append(message)
     if len(midi_nrpn_console_messages) == 4:
-        controller = hex(get_nrpn_ctlr(midi_nrpn_console_messages))
-        data =       hex(get_nrpn_data(midi_nrpn_console_messages))
-        logging.info(f"Controller\t{controller}\t\tData\t{data}")
+        controller = get_nrpn_ctlr(midi_nrpn_console_messages)
+        data =       get_nrpn_data(midi_nrpn_console_messages)
+        logging.info(f"NRPN Message    Controller  {hex(controller)}\tData  {hex(data)}")
         midi_nrpn_console_messages.clear()
 
 # this is a small tool to echo any NRPN-formatted CC commands
