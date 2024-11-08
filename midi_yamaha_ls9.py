@@ -106,22 +106,22 @@ def is_on_off_operation(msg):
     #   if it matches a value in the ON_OFF_CONTROLLERS mapping to find out if this
     #   message is an on/off operation.
     # We use inverse() as the mapping is <ch_name> -> <controller_number> (we want to find ch_name)
-    if get_nrpn_controller(msg) in MIDI_LS9.ON_OFF_CTLRS.inverse:
+    if get_nrpn_ctlr(msg) in MIDI_LS9.ON_OFF_CTLRS.inverse:
         return True
     return False
 
 def is_fade_operation(msg):
-    if get_nrpn_controller(msg) in MIDI_LS9.FADER_CTLRS.inverse:
+    if get_nrpn_ctlr(msg) in MIDI_LS9.FADER_CTLRS.inverse:
         return True
     return False
 
 #returns a string corresponding to the channel (or mix/mt) of the message
 def get_channel(msg):
     if is_fade_operation(msg):
-        return MIDI_LS9.FADER_CTLRS.inv[get_nrpn_controller(msg)]
+        return MIDI_LS9.FADER_CTLRS.inv[get_nrpn_ctlr(msg)]
 
     if is_on_off_operation(msg):
-        return MIDI_LS9.ON_OFF_CTLRS.inv[get_nrpn_controller(msg)]
+        return MIDI_LS9.ON_OFF_CTLRS.inv[get_nrpn_ctlr(msg)]
     return None
 
 #we need these in the midi message interpretation
@@ -138,7 +138,7 @@ def split_bytes(combined):
     return msb, lsb
 
 #this returns the nrpn controller. this is passed through one of the bidicts to return a string
-def get_nrpn_controller(msg):
+def get_nrpn_ctlr(msg):
     return combine_bytes(msg[0][2], msg[1][2])
 
 #return midi NRPN data
@@ -379,34 +379,36 @@ def process_midi_messages(messages, midi_out):
                 send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS["CH49"], MIDI_LS9.CH_OFF_VALUE)
                 send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS["CH50"], MIDI_LS9.CH_OFF_VALUE)
 
+midi_nrpn_console_messages = []
+def midi_nrpn_callback(event, unused):
+    message, deltatime = event
+
+    if message[0] == MIDI_LS9.CC_CMD_BYTE:
+        midi_nrpn_console_messages.append(message)
+    if len(midi_nrpn_console_messages) == 4:
+        controller = hex(get_nrpn_ctlr(midi_nrpn_console_messages))
+        data =       hex(get_nrpn_data(midi_nrpn_console_messages))
+        logging.info(f"Controller\t{controller}\t\tData\t{data}")
+        midi_nrpn_console_messages.clear()
+
 # this is a small tool to echo any NRPN-formatted CC commands
-def midi_nrpn_console(midi_in):
+def midi_nrpn_console(midi_port):
     logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
     logging.info("MIDI Console. Echoing all incoming MIDI NRPN messages (controller+data).\n\
                  Press CTRL+C to exit")
-    midi_messages = []
-    counter = 0
-    while True:
-        time.sleep(0.01)
+    midi_in = rtmidi.MidiIn()
+    midi_in.open_port(midi_port)
+    midi_in.set_callback(midi_nrpn_callback)
 
-        counter += 1
-        if counter >= 100: # every 1s echo a blank line
+    try:
+        while True:
+            time.sleep(1)
             print()
-            counter = 0
-
-        midi_msg = midi_in.get_message()
-        if midi_msg is not None:
-            messages = midi_msg[0]
-            logging.debug(f"{messages=}")
-
-            if messages[0] == MIDI_LS9.CC_CMD_BYTE:
-                midi_messages.append(messages)
-            if len(midi_messages) == 4:
-                controller = hex(get_nrpn_controller(midi_messages))
-                data =       hex(get_nrpn_data(midi_messages))
-                logging.info(f"Controller\t{controller}\t\tData\t{data}")
-                counter = 0
-                midi_messages.clear()
+    except KeyboardInterrupt:
+        print("Exiting...")
+    finally:
+        midi_in.close_port()
+        sys.exit()
 
 def midi_cc_callback(event, unused):
     message, deltatime = event
@@ -414,16 +416,23 @@ def midi_cc_callback(event, unused):
         logging.info(f"CC Message    {message[0]}\t{message[1]}\t{message[2]}")
 
 # this is a small tool to echo any CC commands
-def midi_cc_console(midi_in):
+def midi_cc_console(midi_port):
     logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
     logging.info("MIDI CC Console. Echoing all incoming single packet MIDI CC messages.\n\
                  Press CTRL+C to exit")
-    
+    midi_in = rtmidi.MidiIn()
+    midi_in.open_port(midi_port)
     midi_in.set_callback(midi_cc_callback)
 
-    while True:
-        time.sleep(1)
-
+    try:
+        while True:
+            time.sleep(1)
+            print()
+    except KeyboardInterrupt:
+        print("Exiting...")
+    finally:
+        midi_in.close_port()
+        sys.exit()
 #This code is event based, it will only trigger upon receiving a message from the mixer
 @click.command()
 @click.option('-v', '--verbose', is_flag=True, default=False, help='Set logging level to DEBUG')
@@ -431,18 +440,10 @@ def midi_cc_console(midi_in):
 @click.option('-p', '--port', default=0, metavar='PORT', show_default=True, type=int, help='Specify MIDI port number')
 def main(port, console, verbose):
     if console is not None:
-        midi_in_console = rtmidi.MidiIn()
-        midi_in_console.open_port(port)
-        try:
-            if console == 'NRPN':
-                midi_nrpn_console(midi_in_console)
-            elif console == 'CC':
-                midi_cc_console(midi_in_console)
-        except KeyboardInterrupt:
-            print("Exiting...")
-        finally:
-            midi_in_console.close_port()
-            sys.exit()
+        if console == 'NRPN':
+            midi_nrpn_console(port)
+        elif console == 'CC':
+            midi_cc_console(port)
 
     # Setup the MIDI input & output
     midi_in =  rtmidi.MidiIn()
