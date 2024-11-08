@@ -387,7 +387,7 @@ def midi_console(midi_port, console):
     # if changed in a child function.
     timeout_counter = [0]
     def midi_nrpn_callback(event, unused):
-        message, deltatime = event
+        message, timestamp = event
 
         if message[0] == MIDI_LS9.CC_CMD_BYTE:
             midi_nrpn_console_messages.append(message)
@@ -399,7 +399,7 @@ def midi_console(midi_port, console):
             timeout_counter[0] = 0
 
     def midi_cc_callback(event, unused):
-        message, deltatime = event
+        message, timestamp = event
         if message[0] == MIDI_LS9.CC_CMD_BYTE:
             logging.info(f'CC Message    {message[0]}\t{message[1]}\t{message[2]}')
 
@@ -447,13 +447,6 @@ def main(port, console, verbose):
     if console is not None:
         midi_console(port, console)
 
-    # Setup the MIDI input & output
-    midi_in =  rtmidi.MidiIn()
-    midi_out = rtmidi.MidiOut()
-
-    midi_in.open_port(port)
-    midi_out.open_port(port)
-
     if verbose is True:
         log_level = logging.DEBUG
     else:
@@ -463,41 +456,45 @@ def main(port, console, verbose):
     logging.info('MIDI LS9 Automations. Waiting for incoming MIDI NRPN messages...')
 
     midi_messages = []
-    timeout_counter = 0
+    timeout_counter = [0]
+    def main_midi_callback(event, unused):
+        # the second element (midi_msg[1]) is the timestamp in unix time
+        messages, timestamp = event
+        # Filter out everything but CC (Control Change) commands
+        if messages[0] == MIDI_LS9.CC_CMD_BYTE:
+            midi_messages.append(messages)
+            logging.debug(f'Received CC command {messages} @{timestamp}')
+        # Once we have 4 CC messages, process them
+        if len(midi_messages) == 4:
+            try:
+                process_midi_messages(midi_messages, midi_out)
+            # we will catch all exceptions to make this system a big more rugged.
+            except Exception as e:
+                error_message = traceback.format_exc()
+                logging.error(error_message)
+                logging.error(str(e))
+            finally:
+                midi_messages.clear()  # Clear the list for the next batch of 4 messages
+                timeout_counter[0] = 0
+
+    # Setup the MIDI input & output
+    midi_in =  rtmidi.MidiIn()
+    midi_in.open_port(port)
+    midi_out = rtmidi.MidiOut()
+    midi_out.open_port(port)
+    midi_in.set_callback(main_midi_callback)
+
     while True:
         #delay is necessary to not overload the CPU or RAM
         time.sleep(0.005)
         # if there is an incomplete packet in the buffer, increase the timeout
         if len(midi_messages) > 0:
-            timeout_counter += 1
+            timeout_counter[0] += 1
         #if counter exceeds 0.005 * 20 = 100ms
-        if timeout_counter > 20:
-            logging.warning('Timeout! Resetting MIDI input buffer')
+        if timeout_counter[0] > 20:
             midi_messages.clear()
-            timeout_counter = 0
-
-        # Get the raw data from the midi get_message function.
-        #   It will either return None, or a 2 element list
-        midi_msg = midi_in.get_message()
-        if midi_msg is not None:
-            # the second element (midi_msg[1]) is the timestamp in unix time
-            messages = midi_msg[0]
-            # Filter out everything but CC (Control Change) commands
-            if messages[0] == MIDI_LS9.CC_CMD_BYTE:
-                midi_messages.append(messages)
-                logging.debug(f'Received CC command {midi_msg[0]} @{midi_msg[1]}')
-            # Once we have 4 CC messages, process them
-            if len(midi_messages) == 4:
-                try:
-                    process_midi_messages(midi_messages, midi_out)
-                # we will catch all exceptions to make this system a big more rugged.
-                except Exception as e:
-                    error_message = traceback.format_exc()
-                    logging.error(error_message)
-                    logging.error(str(e))
-                finally:
-                    midi_messages.clear()  # Clear the list for the next batch of 4 messages
-                    timeout_counter = 0
+            timeout_counter[0] = 0
+            logging.warning('Timeout! Resetting MIDI input buffer')
 
 if __name__ == '__main__':
     main()
