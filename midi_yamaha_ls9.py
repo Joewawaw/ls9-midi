@@ -386,7 +386,7 @@ def midi_cc_callback(event, unused):
         logging.info(f'CC Message    {message[0]}\t{message[1]}\t{message[2]}')
 
 midi_nrpn_console_messages = []
-def midi_nrpn_callback(event, unused):
+def midi_nrpn_callback(event, timeout_counter):
     message, deltatime = event
 
     if message[0] == MIDI_LS9.CC_CMD_BYTE:
@@ -396,8 +396,11 @@ def midi_nrpn_callback(event, unused):
         data =       get_nrpn_data(midi_nrpn_console_messages)
         logging.info(f'NRPN Message    Controller  {hex(controller)}\tData  {hex(data)}')
         midi_nrpn_console_messages.clear()
+        timeout_counter = 0
+
 
 # this is a small tool to echo any NRPN-formatted CC commands
+timeout_counter = 0
 def midi_console(midi_port, console):
     logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
     midi_in = rtmidi.MidiIn()
@@ -410,10 +413,9 @@ def midi_console(midi_port, console):
     elif console == 'NRPN':
         logging.info('MIDI NRPN Console. Echoing all incoming MIDI NRPN messages (controller+data)')
         logging.info('Press CTRL+C to exit')
-        midi_in.set_callback(midi_nrpn_callback)
+        midi_in.set_callback(midi_nrpn_callback, timeout_counter)
 
     try:
-        timeout_counter = 0
         while True:
             time.sleep(0.1)
             timeout_counter += 1
