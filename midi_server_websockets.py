@@ -417,7 +417,7 @@ async def async_main(port, console, verbose):
 
     midi_messages = []
     timeout_counter = [0]
-    async def main_midi_callback(event, unused):
+    def main_midi_callback(event, unused):
         messages, timestamp = event
         # Filter out everything but CC (Control Change) commands
         if messages[0] == MIDI_LS9.CC_CMD_BYTE:
