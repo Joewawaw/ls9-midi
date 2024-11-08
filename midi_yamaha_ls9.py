@@ -412,7 +412,7 @@ def midi_console(midi_port, console):
     elif console == 'NRPN':
         logging.info('MIDI NRPN Console. Echoing all incoming MIDI NRPN messages (controller+data)')
         logging.info('Press CTRL+C to exit')
-        midi_in.set_callback(midi_nrpn_callback, timeout_counter)
+        midi_in.set_callback(midi_nrpn_callback)
 
     try:
         while True:
