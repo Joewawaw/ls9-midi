@@ -352,6 +352,7 @@ async def midi_console(midi_port, console):
         message, timestamp = event
         if message[0] == MIDI_LS9.CC_CMD_BYTE:
             logging.info(f'CC Message    {message[0]}\t{message[1]}\t{message[2]}')
+            timeout_counter[0] = 0
 
     logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
     midi_in = rtmidi.MidiIn()
