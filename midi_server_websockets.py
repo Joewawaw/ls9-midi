@@ -394,8 +394,8 @@ def midi_console(midi_port, console):
 
 async def main(port, console, verbose):
     #if the console flag was passed, run one of the mini-tools instead of the main program (automations)
-    if console is not None:
-        midi_console(port, console)
+    #if console is not None:
+    #    midi_console(port, console)
 
     if verbose is True:
         log_level = logging.DEBUG
@@ -413,7 +413,7 @@ async def main(port, console, verbose):
 
     midi_messages = []
     timeout_counter = [0]
-    def main_midi_callback(event, unused):
+    async def main_midi_callback(event, unused):
         messages, timestamp = event
         # Filter out everything but CC (Control Change) commands
         if messages[0] == MIDI_LS9.CC_CMD_BYTE:
