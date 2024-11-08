@@ -336,7 +336,7 @@ async def midi_console(midi_port, console):
     # using a list because lists are mutable, and so their values will change in the parent function
     # if changed in a child function.
     timeout_counter = [0]
-    async def midi_nrpn_callback(event, unused):
+    def midi_nrpn_callback(event, unused):
         message, timestamp = event
 
         if message[0] == MIDI_LS9.CC_CMD_BYTE:
