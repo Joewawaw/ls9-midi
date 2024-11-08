@@ -89,6 +89,7 @@ import sys
 
 from bidict import bidict
 import rtmidi
+import click
 
 #my constants
 import yamaha_ls9_constants as MIDI_LS9
@@ -429,8 +430,27 @@ def midi_cc_console(midi_in):
                 logging.info(f"CC Message\t{messages[0]}\t{messages[1]}\t{messages[2]}")
 
 
+@click.command()
+@click.option('-v', '--verbose', isFlag=True, default=False, help='set logging level to DEBUG')
+@click.option('-c', '--console', default=None, type=str, help='run in console mode [CC or NRPN]')
+@click.option('-p', '--port', default=0, show_default=True, type=int, help='specify MIDI port number')
+
 #This code is event based, it will only trigger upon receiving a message from the mixer
-def main(log_level=logging.INFO):
+def main():
+    if console is not None:
+        midi_in_console = rtmidi.MidiIn()
+        midi_in_console.open_port(port)
+        try:
+            if console == 'NRPN':
+                midi_nrpn_console(midi_in_console)
+            elif console == 'CC':
+                midi_cc_console(midi_in_console)
+        except KeyboardInterrupt:
+            print("Exiting...")
+        finally:
+            midi_in_console.close_port()
+            sys.exit()
+
     # Setup the MIDI input & output
     midi_in =  rtmidi.MidiIn()
     midi_out = rtmidi.MidiOut()
@@ -438,6 +458,10 @@ def main(log_level=logging.INFO):
     midi_in.open_port(0)
     midi_out.open_port(0)
 
+    if verbose is True:
+        log_level = logging.DEBUG
+    else:
+        log_level = logging.INFO
     # time is given in ISO8601 date format
     logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', level=log_level)
 
@@ -481,34 +505,33 @@ def main(log_level=logging.INFO):
                     timeout_counter = 0
 
 if __name__ == '__main__':
-    LOG_LEVEL = logging.INFO
-    #run the console mini-app if the argument passed to script
-    if len(sys.argv) > 1:
-        #if "console", "midi" or "shell" is passed as first argument
-        if "console" in sys.argv[1] or "midi" in sys.argv[1] or "shell" in sys.argv[1]:
-            midi_in_console = rtmidi.MidiIn()
-            midi_in_console.open_port(0)
-            try:
-                midi_nrpn_console(midi_in_console)
-            except KeyboardInterrupt:
-                print("Exiting...")
-            finally:
-                midi_in_console.close_port()
-                sys.exit()
-        if "cc" in sys.argv[1]:
-            midi_in_cc_console = rtmidi.MidiIn()
-            midi_in_cc_console.open_port(0)
-            try:
-                midi_cc_console(midi_in_cc_console)
-            except KeyboardInterrupt:
-                print("Exiting...")
-            finally:
-                midi_in_cc_console.close_port()
-                sys.exit()
-        
-        # if -v, --verbose, or similar is passed as only argument
-        elif "-v" in sys.argv[1] or "verbose" in sys.argv[1] or "debug" in sys.argv[1]:
-            LOG_LEVEL = logging.DEBUG
-
-    # Run the main function with LOG_LEVEL logging
-    main(LOG_LEVEL)
+    main()
+#    LOG_LEVEL = logging.INFO
+#    #run the console mini-app if the argument passed to script
+#    if len(sys.argv) > 1:
+#        #if "console", "midi" or "shell" is passed as first argument
+#        if "console" in sys.argv[1] or "midi" in sys.argv[1] or "shell" in sys.argv[1]:
+#            midi_in_console = rtmidi.MidiIn()
+#            midi_in_console.open_port(0)
+#            try:
+#                midi_nrpn_console(midi_in_console)
+#            except KeyboardInterrupt:
+#                print("Exiting...")
+#            finally:
+#                midi_in_console.close_port()
+#                sys.exit()
+#        if "cc" in sys.argv[1]:
+#            midi_in_cc_console = rtmidi.MidiIn()
+#            midi_in_cc_console.open_port(0)
+#            try:
+#                midi_cc_console(midi_in_cc_console)
+#            except KeyboardInterrupt:
+#                print("Exiting...")
+#            finally:
+#                midi_in_cc_console.close_port()
+#                sys.exit()
+#        
+#        # if -v, --verbose, or similar is passed as only argument
+#        elif "-v" in sys.argv[1] or "verbose" in sys.argv[1] or "debug" in sys.argv[1]:
+#            LOG_LEVEL = logging.DEBUG
+#
