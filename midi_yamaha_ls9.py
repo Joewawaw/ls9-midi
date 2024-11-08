@@ -437,11 +437,11 @@ def midi_console(midi_port, console):
         midi_in.close_port()
         sys.exit()
 
-#This code is event based, it will only trigger upon receiving a message from the mixer
 @click.command()
 @click.option('-v', '--verbose', is_flag=True, default=False, help='Set logging level to DEBUG')
 @click.option('-c', '--console', default=None, type=click.Choice(['CC', 'NRPN'], case_sensitive=False), help='Run in console mode')
 @click.option('-p', '--port', default=0, metavar='PORT', show_default=True, type=int, help='Specify MIDI port number')
+
 def main(port, console, verbose):
     #if the console flag was passed, run one of the mini-tools instead of the main program (automations)
     if console is not None:
@@ -455,15 +455,20 @@ def main(port, console, verbose):
     logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', level=log_level)
     logging.info('MIDI LS9 Automations. Waiting for incoming MIDI NRPN messages...')
 
+    # Setup the MIDI input & output
+    midi_in =  rtmidi.MidiIn()
+    midi_in.open_port(port)
+    midi_out = rtmidi.MidiOut()
+    midi_out.open_port(port)
+
     midi_messages = []
     timeout_counter = [0]
     def main_midi_callback(event, unused):
-        # the second element (midi_msg[1]) is the timestamp in unix time
         messages, timestamp = event
         # Filter out everything but CC (Control Change) commands
         if messages[0] == MIDI_LS9.CC_CMD_BYTE:
             midi_messages.append(messages)
-            logging.debug(f'Received CC command {messages} @{timestamp}')
+            logging.debug(f'Received CC command {messages}')
         # Once we have 4 CC messages, process them
         if len(midi_messages) == 4:
             try:
@@ -477,11 +482,8 @@ def main(port, console, verbose):
                 midi_messages.clear()  # Clear the list for the next batch of 4 messages
                 timeout_counter[0] = 0
 
-    # Setup the MIDI input & output
-    midi_in =  rtmidi.MidiIn()
-    midi_in.open_port(port)
-    midi_out = rtmidi.MidiOut()
-    midi_out.open_port(port)
+    #set_callback needs to be after the function above, and the callback function needs to know
+    # about midi_out
     midi_in.set_callback(main_midi_callback)
 
     while True:
