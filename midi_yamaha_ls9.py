@@ -408,26 +408,19 @@ def midi_nrpn_console(midi_in):
                 counter = 0
                 midi_messages.clear()
 
+def midi_cc_callback(event):
+    message, deltatime = event
+    if message[0] == MIDI_LS9.CC_CMD_BYTE:
+        logging.info(f"CC Message    {message[0]}\t{message[1]}\t{message[2]}")
+
 # this is a small tool to echo any CC commands
 def midi_cc_console(midi_in):
     logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
     logging.info("MIDI CC Console. Echoing all incoming single packet MIDI CC messages.\n\
                  Press CTRL+C to exit")
     
-    class MidiInputHandler(object):
-        def __init__(self):
-            self._wallclock = time.time()
-
-        def __call__(self, event, data=None):
-            message, deltatime = event
-            self._wallclock += deltatime
-            logging.debug(f"{message=}")
-            if message[0] == MIDI_LS9.CC_CMD_BYTE:
-                logging.info(f"CC Message\t{message[0]}\t{message[1]}\t{message[2]}")
-
-
     print("Attaching MIDI input callback handler.")
-    midi_in.set_callback(MidiInputHandler())
+    midi_in.set_callback(midi_cc_callback, data=midi_in)
 
     while True:
         time.sleep(1)
