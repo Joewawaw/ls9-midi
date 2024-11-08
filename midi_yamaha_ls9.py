@@ -430,13 +430,12 @@ def midi_cc_console(midi_in):
                 logging.info(f"CC Message\t{messages[0]}\t{messages[1]}\t{messages[2]}")
 
 
-@click.command()
-@click.option('-v', '--verbose', is_flag=True, default=False, help='set logging level to DEBUG')
-@click.option('-c', '--console', default=None, type=click.Choice(['CC', 'NRPN']), help='run in console mode [CC or NRPN]')
-@click.option('-p', '--port', default=0, show_default=True, type=int, help='specify MIDI port number')
-
 #This code is event based, it will only trigger upon receiving a message from the mixer
-def main():
+@click.command()
+@click.option('-v', '--verbose', 'is_verbose', is_flag=True, default=False, help='Set logging level to DEBUG')
+@click.option('-c', '--console', default=None, type=click.Choice(['CC', 'NRPN']), help='Run in console mode')
+@click.option('-p', '--port', default=0, metavar='PORT', show_default=True, type=int, help='Specify MIDI port number')
+def main(port, console, verbose):
     if console is not None:
         midi_in_console = rtmidi.MidiIn()
         midi_in_console.open_port(port)
