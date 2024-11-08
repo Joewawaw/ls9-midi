@@ -420,7 +420,7 @@ def midi_cc_console(midi_in):
                  Press CTRL+C to exit")
     
     print("Attaching MIDI input callback handler.")
-    midi_in.set_callback(midi_cc_callback, data=midi_in)
+    midi_in.set_callback(midi_cc_callback)
 
     while True:
         time.sleep(1)
