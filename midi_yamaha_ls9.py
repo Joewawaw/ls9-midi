@@ -383,7 +383,9 @@ def process_midi_messages(messages, midi_out):
 # this is a small tool to echo any NRPN-formatted CC commands
 def midi_console(midi_port, console):
     midi_nrpn_console_messages = []
-    timeout_counter = {'count': 0}
+    # using a list because lists are mutable, and so their values will change in the parent function
+    # if changed in a child function.
+    timeout_counter = [0]
     def midi_nrpn_callback(event, unused):
         message, deltatime = event
 
@@ -394,7 +396,7 @@ def midi_console(midi_port, console):
             data =       get_nrpn_data(midi_nrpn_console_messages)
             logging.info(f'NRPN Message    Controller  {hex(controller)}\tData  {hex(data)}')
             midi_nrpn_console_messages.clear()
-            timeout_counter['count'] = 0
+            timeout_counter[0] = 0
 
     def midi_cc_callback(event, unused):
         message, deltatime = event
@@ -404,7 +406,7 @@ def midi_console(midi_port, console):
     logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
     midi_in = rtmidi.MidiIn()
     midi_in.open_port(midi_port)
-    
+
     if console == 'CC':
         logging.info('MIDI CC Console. Echoing all incoming MIDI CC messages (3 byte packets)')
         logging.info('Press CTRL+C to exit')
@@ -417,17 +419,18 @@ def midi_console(midi_port, console):
     try:
         while True:
             time.sleep(0.05)
-            timeout_counter['count'] += 1
+            timeout_counter[0] += 1
             # every 1s print a blank line
-            if timeout_counter['count'] == 20:
+            if timeout_counter[0] == 20:
                 print()
-                timeout_counter['count'] = 0
+                timeout_counter[0] = 0
             #if timeout_counter overflows, check if input buffer data is incomplete (>0, <4) & reset
-            if timeout_counter['count'] > 5:
+            #timeout is set to 250ms
+            if timeout_counter[0] > 5:
                 if len(midi_nrpn_console_messages) > 0 and len(midi_nrpn_console_messages) < 4:
                     logging.warning(f'Timeout on midi input buffer! data: {midi_nrpn_console_messages}')
                     midi_nrpn_console_messages.clear()
-                    timeout_counter['count'] = 0
+                    timeout_counter[0] = 0
     except KeyboardInterrupt:
         print('Exiting...')
     finally:
