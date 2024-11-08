@@ -408,7 +408,7 @@ def midi_nrpn_console(midi_in):
                 counter = 0
                 midi_messages.clear()
 
-def midi_cc_callback(event):
+def midi_cc_callback(event, unused):
     message, deltatime = event
     if message[0] == MIDI_LS9.CC_CMD_BYTE:
         logging.info(f"CC Message    {message[0]}\t{message[1]}\t{message[2]}")
@@ -419,7 +419,6 @@ def midi_cc_console(midi_in):
     logging.info("MIDI CC Console. Echoing all incoming single packet MIDI CC messages.\n\
                  Press CTRL+C to exit")
     
-    print("Attaching MIDI input callback handler.")
     midi_in.set_callback(midi_cc_callback)
 
     while True:
