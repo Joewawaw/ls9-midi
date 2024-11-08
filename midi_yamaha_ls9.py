@@ -550,7 +550,7 @@ def midi_cc_console(midi_in):
             messages = midi_msg[0]
             counter = 0
             if messages[0] == MIDI_CC_CMD_BYTE:
-                logging.info(f"CC Message\t{messages[0]}")
+                logging.info(f"CC Message\t{messages[0]}\t{messages[1]}\t{messages[2]}")
 
 
 #This code is event based, it will only trigger upon receiving a message from the mixer
