@@ -331,12 +331,12 @@ def process_midi_messages(messages, midi_out):
 
 
 # this is a small tool to echo any NRPN-formatted CC commands
-def midi_console(midi_port, console):
+async def midi_console(midi_port, console):
     midi_nrpn_console_messages = []
     # using a list because lists are mutable, and so their values will change in the parent function
     # if changed in a child function.
     timeout_counter = [0]
-    def midi_nrpn_callback(event, unused):
+    async def midi_nrpn_callback(event, unused):
         message, timestamp = event
 
         if message[0] == MIDI_LS9.CC_CMD_BYTE:
@@ -368,7 +368,7 @@ def midi_console(midi_port, console):
 
     try:
         while True:
-            time.sleep(0.05)
+            await asyncio.sleep(0.05)
             timeout_counter[0] += 1
             # every 1s print a blank line
             if timeout_counter[0] == 20:
@@ -387,15 +387,19 @@ def midi_console(midi_port, console):
         midi_in.close_port()
         sys.exit()
 
+
+# Click wrapper for the async main function
 @click.command()
 @click.option('-v', '--verbose', is_flag=True, default=False, help='Set logging level to DEBUG')
 @click.option('-c', '--console', default=None, type=click.Choice(['CC', 'NRPN'], case_sensitive=False), help='Run in console mode')
 @click.option('-p', '--port', default=0, metavar='PORT', show_default=True, type=int, help='Specify MIDI port number')
+def main(port, console, verbose):
+    asyncio.run(async_main(port, console, verbose))
 
-async def main(port, console, verbose):
+async def async_main(port, console, verbose):
     #if the console flag was passed, run one of the mini-tools instead of the main program (automations)
-    #if console is not None:
-    #    midi_console(port, console)
+    if console is not None:
+        midi_console(port, console)
 
     if verbose is True:
         log_level = logging.DEBUG
@@ -455,4 +459,4 @@ async def main(port, console, verbose):
             sys.exit()
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    main()
