@@ -485,16 +485,22 @@ def main(port, console, verbose):
     midi_in.set_callback(main_midi_callback)
 
     while True:
-        #delay is necessary to not overload the CPU or RAM
-        time.sleep(0.005)
-        # if there is an incomplete packet in the buffer, increase the timeout
-        if len(midi_messages) > 0:
-            timeout_counter[0] += 1
-        #if counter exceeds 0.005 * 20 = 100ms
-        if timeout_counter[0] > 20:
-            midi_messages.clear()
-            timeout_counter[0] = 0
-            logging.warning('Timeout! Resetting MIDI input buffer')
+        try:
+            #delay is necessary to not overload the CPU or RAM
+            time.sleep(0.005)
+            # if there is an incomplete packet in the buffer, increase the timeout
+            if len(midi_messages) > 0:
+                timeout_counter[0] += 1
+            #if counter exceeds 0.005 * 20 = 100ms
+            if timeout_counter[0] > 20:
+                midi_messages.clear()
+                timeout_counter[0] = 0
+                logging.warning('Timeout! Resetting MIDI input buffer')
+        except KeyboardInterrupt:
+            logging.warning('CTRL+C pressed. Exiting...')
+            midi_in.close_port()
+            midi_out.close_port()
+            sys.exit()
 
 if __name__ == '__main__':
     main()
