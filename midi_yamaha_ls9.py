@@ -416,15 +416,18 @@ def midi_console(midi_port, console):
 
     try:
         while True:
-            time.sleep(0.1)
+            time.sleep(0.05)
             timeout_counter['count'] += 1
-            if timeout_counter['count'] == 10:
+            # every 1s print a blank line
+            if timeout_counter['count'] == 20:
                 print()
-            if timeout_counter['count'] > 15:
+                timeout_counter['count'] = 0
+            #if timeout_counter overflows, check if input buffer data is incomplete (>0, <4) & reset
+            if timeout_counter['count'] > 5:
                 if len(midi_nrpn_console_messages) > 0 and len(midi_nrpn_console_messages) < 4:
                     logging.warning(f'Timeout on midi input buffer! data: {midi_nrpn_console_messages}')
                     midi_nrpn_console_messages.clear()
-                timeout_counter['count'] = 0
+                    timeout_counter['count'] = 0
     except KeyboardInterrupt:
         print('Exiting...')
     finally:
