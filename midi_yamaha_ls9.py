@@ -413,23 +413,24 @@ def midi_cc_console(midi_in):
     logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
     logging.info("MIDI CC Console. Echoing all incoming single packet MIDI CC messages.\n\
                  Press CTRL+C to exit")
-    counter = 0
+    
+    class MidiInputHandler(object):
+        def __init__(self):
+            self._wallclock = time.time()
+
+        def __call__(self, event, data=None):
+            message, deltatime = event
+            self._wallclock += deltatime
+            logging.debug(f"{message=}")
+            if message[0] == MIDI_LS9.CC_CMD_BYTE:
+                logging.info(f"CC Message\t{message[0]}\t{message[1]}\t{message[2]}")
+
+
+    print("Attaching MIDI input callback handler.")
+    midi_in.set_callback(MidiInputHandler())
+
     while True:
-        time.sleep(0.01)
-
-        counter += 1
-        if counter >= 100: # every 1s echo a blank line
-            print()
-            counter = 0
-
-        midi_msg = midi_in.get_message()
-        if midi_msg is not None:
-            messages = midi_msg[0]
-            logging.debug(f"{messages=}")
-            counter = 0
-            if messages[0] == MIDI_LS9.CC_CMD_BYTE:
-                logging.info(f"CC Message\t{messages[0]}\t{messages[1]}\t{messages[2]}")
-
+        time.sleep(1)
 
 #This code is event based, it will only trigger upon receiving a message from the mixer
 @click.command()
