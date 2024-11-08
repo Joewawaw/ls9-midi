@@ -432,7 +432,7 @@ def midi_cc_console(midi_in):
 
 @click.command()
 @click.option('-v', '--verbose', is_flag=True, default=False, help='set logging level to DEBUG')
-@click.option('-c', '--console', default=None, type=str, help='run in console mode [CC or NRPN]')
+@click.option('-c', '--console', default=None, type=click.Choice(['CC', 'NRPN']), help='run in console mode [CC or NRPN]')
 @click.option('-p', '--port', default=0, show_default=True, type=int, help='specify MIDI port number')
 
 #This code is event based, it will only trigger upon receiving a message from the mixer
