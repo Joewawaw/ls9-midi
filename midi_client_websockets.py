@@ -54,6 +54,10 @@ def main(port, ip, verbose):
     asyncio.run(async_main(port, ip, verbose))
 
 async def async_main(midi_port, hostname_port, is_verbose):
+    def websockets_send(hostname_port, controller, data):
+        with connect(f'ws://{hostname_port}') as websocket:
+            websocket.send(f'{int(controller)},{int(data)}')
+
     def midi_cc_callback(event, unused):
         message, timestamp = event
         if message[0] == MIDI_LS9.CC_CMD_BYTE:
@@ -61,10 +65,7 @@ async def async_main(midi_port, hostname_port, is_verbose):
             logging.debug(f'Websocket Send "{message[1]},{message[2]}" to {WEBSOCKET_IP}:{WEBSOCKET_PORT}')
             websockets_send(hostname_port, message[1], message[2])
 
-    def websockets_send(hostname_port, controller, data):
-      with connect(f'ws://{hostname_port}') as websocket:
-            websocket.send(f'{int(controller)},{int(data)}')
-
+    
     if is_verbose:
         log_level = logging.DEBUG
     else:
