@@ -31,6 +31,14 @@
 ####       cd src
 ####       ./midi_server_websockets.py
 
+## TODO:
+## make class for midi incoming, and make into a file. common to all .py files.
+## move timeout to a separate thread into the class, should not be visible on the main loop
+## move async part of main loop to a specific nested? function that is declared as async, not the entire main block
+## move is_, getters and send_nrpn into midi in out class
+## in this websockets server code's pure form, process midi message should not exist here. in a class based setup, we can configure process_cc_messages to trigger based on a clock flag
+## make process_midi_messages a importable function from midi_yamaha_ls9.py
+
 import time
 import logging
 import traceback
@@ -474,7 +482,7 @@ async def async_main(port, console, verbose):
                 timeout_counter[0] = 0
 
     #set_callback needs to be after the function above, and the callback function needs to know
-    # about midi_out
+    # about midi_out, so place it here in the code.
     midi_in.set_callback(main_midi_callback)
 
     while True:

@@ -45,27 +45,25 @@ from websockets.sync.client import connect
 #my constants
 import yamaha_ls9_constants as MIDI_LS9
 
-WEBSOCKET_IP = 'localhost'
-WEBSOCKET_PORT = '8001'
-
-def websockets_send(controller, data):
-    with connect(f'ws://{WEBSOCKET_IP}:{WEBSOCKET_PORT}') as websocket:
-        websocket.send(f'{int(controller)},{int(data)}')
-
 # Click wrapper for the async main function
 @click.command()
 @click.option('-v', '--verbose', is_flag=True, default=False, help='Set logging level to DEBUG')
 @click.option('-p', '--port', default=0, metavar='PORT', show_default=True, type=int, help='Specify MIDI port number')
+@click.option('--ip', default='localhost:8001', metavar='HOSTNAME:PORT', show_default=True, type=str, help='Specify hostname and port number')
 def main(port, verbose):
-    asyncio.run(async_main(port, verbose))
+    asyncio.run(async_main(port, ip, verbose))
 
-async def async_main(midi_port, verbose):
+async def async_main(midi_port, hostname_port, verbose):
     def midi_cc_callback(event, unused):
         message, timestamp = event
         if message[0] == MIDI_LS9.CC_CMD_BYTE:
             logging.debug(f'CC Message    {message[0]}\t{message[1]}\t{message[2]}')
             logging.debug(f'Websocket Send "{message[1]},{message[2]}" to {WEBSOCKET_IP}:{WEBSOCKET_PORT}')
-            websockets_send(message[1], message[2])
+            websockets_send(hostname_port, message[1], message[2])
+
+    def websockets_send(hostname_port, controller, data):
+      with connect(f'ws://{hostname_port}') as websocket:
+            websocket.send(f'{int(controller)},{int(data)}')
 
     if verbose:
         log_level = logging.DEBUG
