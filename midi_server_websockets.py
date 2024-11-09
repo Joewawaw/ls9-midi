@@ -34,12 +34,13 @@
 import time
 import logging
 import traceback
+import asyncio
 import sys
+from functools import partial
 
 from bidict import bidict
 import rtmidi
 import click
-import asyncio
 from websockets.asyncio.server import serve
 
 #my constants
@@ -389,9 +390,29 @@ async def midi_console(midi_port, console):
         midi_in.close_port()
         sys.exit()
 
-async def websocket_listener(websocket):
+
+async def websocket_listener(websocket, path, arg1):
     async for message in websocket:
-        print(message.split(','))
+        message_list = message.split(',')
+        logging.debug(message.split(','))
+        # we assume the casting and index accss wont fail
+        cc_controller = int(message_list[0])
+        cc_data = int(message_list[1])
+        data = int((cc_data / 127.0) * MIDI_LS9.FADE_10DB_VALUE)
+        #get the right MT SoF controller by checking which bidict cc_controller is an element
+        if cc_controller in MIDI_LS9.USB_MIDI_MT5_SOF_CC_CTLRS:
+            mix_name = MIDI_LS9.USB_MIDI_MT5_SOF_CC_CTLRS.inv[cc_controller]
+            controller = MIDI_LS9.MT5_SOF_CTRLS[mix_name]
+            logging.info(f'MIDI OUT: {mix_name} Send to MT5 @{hex(data)}')
+            await send_nrpn(arg1, controller, data)
+        elif cc_controller in MIDI_LS9.USB_MIDI_MT6_SOF_CC_CTLRS:
+            mix_name = MIDI_LS9.USB_MIDI_MT6_SOF_CC_CTLRS.inv[cc_controller]
+            controller = MIDI_LS9.MT6_SOF_CTRLS[mix_name]
+            logging.info(f'MIDI OUT: {mix_name} Send to MT6 @{hex(data)}')
+            await send_nrpn(arg1, controller, data)
+        else:
+            logging.error(f'Received CC command from USB keyboard is invalid! {cc_controller}')
+        
 
 # Click wrapper for the async main function
 @click.command()
@@ -448,7 +469,9 @@ async def async_main(port, console, verbose):
 
     while True:
         try:
-            async with serve(websocket_listener, "localhost", 8001):
+            #start websocket listener and attach callback websocket_listener() to serve()
+            listener_with_args = partial(websocket_listener, arg1=midi_out)
+            async with serve(listener_with_args, "localhost", 8001):
                 await asyncio.get_running_loop().create_future()  # run forever
             
             #delay is necessary to not overload the CPU or RAM

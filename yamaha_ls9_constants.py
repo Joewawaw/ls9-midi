@@ -53,6 +53,8 @@ FADER_CTLRS = bidict({
     "ST LR":  0x3e00, "MONO":   0x3451 #, "MON": 0x
 })
 
+
+
 # "SOF" means "Sends on Fader"
 MIX1_SOF_CTLRS = bidict({
     "CH01" : 0x3551, "CH02" : 0x35d1, "CH03" : 0x3651, "CH04" : 0x36d1, "CH05" : 0x3751,
@@ -69,6 +71,20 @@ MIX1_SOF_CTLRS = bidict({
     "CH56" : 0x14d2, "CH57" : 0x2521, "CH58" : 0x25a1, "CH59" : 0x2621, "CH60" : 0x26a1,
     "CH61" : 0x2721, "CH62" : 0x27a1, "CH63" : 0x2821, "CH64" : 0x28a1
 })
+
+
+
+#use this mapping to go from CC number -> Mix number, then use MT5_SOF_CTRLS for the ls9 controller
+# 1: main in ear, 2: chorus f, 3: chorus m, 4: lead, 5: harmonium, 6: tabla, 7: crowd, 8: master
+USB_MIDI_MT5_SOF_CC_CTLRS = bidict( {
+    70 : "MIX3",   71 : "MIX5",   72 : "MIX6",   73 : "MIX8",
+    74 : "MIX11",  75 : "MIX10",  76 : "MIX12",  77 : "MT5",
+})
+USB_MIDI_MT6_SOF_CC_CTLRS = bidict( {
+    80 : "MIX4",   81 : "MIX5",   82 : "MIX6",   83 : "MIX8",
+    84 : "MIX11",  85 : "MIX10",  86 : "MIX12",  87 : "MT6",
+})
+#MT5 fader controller is 0x3c00, MT6 is 0x3c80
 
 MT5_SOF_CTRLS = bidict({
     "MIX1" : 0xb0c,  "MIX2" : 0xb8c,  "MIX3" : 0xc0c,  "MIX4" : 0xc8c,
@@ -89,6 +105,7 @@ CH_ON_VALUE  = 0x3FFF
 CH_OFF_VALUE = 0x0000
 
 # relevant values for fader controlling
+FADE_10DB_VALUE = 0xFFFF ######################
 FADE_0DB_VALUE =    0x3370
 FADE_50DB_VALUE =   0xad0
 FADE_60DB_VALUE =   0x7b0
