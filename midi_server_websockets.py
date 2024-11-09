@@ -391,7 +391,7 @@ async def midi_console(midi_port, console):
         sys.exit()
 
 
-async def websocket_listener(websocket, path, arg1):
+async def websocket_listener(websocket, arg1):
     async for message in websocket:
         message_list = message.split(',')
         logging.debug(message.split(','))
