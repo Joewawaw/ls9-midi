@@ -34,7 +34,7 @@ import asyncio
 from websockets.sync.client import connect
 
 def websockets_send():
-    with connect("ws://localhost:8765") as websocket:
-        websocket.send("Hello world!")
+    with connect("ws://localhost:8001") as websocket:
+        websocket.send("80,100")
 
 websockets_send()
