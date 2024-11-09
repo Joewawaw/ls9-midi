@@ -431,6 +431,11 @@ async def async_main(port, console, verbose):
         log_level = logging.DEBUG
     else:
         log_level = logging.INFO
+
+    #set the logger of websockets to warning only to avoid noise
+    logger = logging.getLogger('websockets')
+    logger.setLevel(logging.WARNING)
+
     # time is given in ISO8601 date format
     logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s', level=log_level)
     logging.info('MIDI LS9 Automations. Waiting for incoming MIDI NRPN messages...')
