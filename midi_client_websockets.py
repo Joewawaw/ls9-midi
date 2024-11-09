@@ -64,7 +64,7 @@ async def async_main(midi_port, verbose):
         message, timestamp = event
         if message[0] == MIDI_LS9.CC_CMD_BYTE:
             logging.debug(f'CC Message    {message[0]}\t{message[1]}\t{message[2]}')
-            logging.info(f'websocket send to {WEBSOCKET_IP}:{WEBSOCKET_PORT}')
+            logging.debug(f'Websocket Send "{message[1]},{message[2]}" to {WEBSOCKET_IP}:{WEBSOCKET_PORT}')
             websockets_send(message[1], message[2])
 
     if verbose:
