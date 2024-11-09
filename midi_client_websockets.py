@@ -30,19 +30,15 @@
 ####       pip install python-rtmidi bidict websockets click
 ####       cd src
 ####       ./midi_server_websockets.py
-import time
 import logging
-import traceback
 import asyncio
 import sys
-from functools import partial
 
-from bidict import bidict
 import rtmidi
 import click
 from websockets.sync.client import connect
 
-#my constants
+# my constants
 import yamaha_ls9_constants as MIDI_LS9
 
 # Click wrapper for the async main function
@@ -54,18 +50,16 @@ def main(port, ip, verbose):
     asyncio.run(async_main(port, ip, verbose))
 
 async def async_main(midi_port, hostname_port, is_verbose):
-    def websockets_send(hostname_port, controller, data):
-        print(hostname_port)
-        with connect(f'ws://{hostname_port}') as websocket:
+    def websockets_send(host, controller, data):
+        with connect(f'ws://{host}') as websocket:
             websocket.send(f'{int(controller)},{int(data)}')
 
     def midi_cc_callback(event, unused):
         message, timestamp = event
         if message[0] == MIDI_LS9.CC_CMD_BYTE:
             logging.debug(f'CC Message    {message[0]}\t{message[1]}\t{message[2]}')
-            logging.debug(f'Websocket Send "{message[1]},{message[2]}"')
+            logging.info(f'Websocket Send "{message[1]},{message[2]}"')
             websockets_send(hostname_port, message[1], message[2])
-
     
     if is_verbose:
         log_level = logging.DEBUG
@@ -74,6 +68,7 @@ async def async_main(midi_port, hostname_port, is_verbose):
     logging.basicConfig(format='%(asctime)s %(message)s', level=log_level)
     logging.info('MIDI USB Keyboard to websockets Client')
     logging.info('Press CTRL+C to exit')
+    logging.info(f'Connecting to ws://{hostname_port} ...')
 
     midi_in = rtmidi.MidiIn()
     midi_in.open_port(midi_port)

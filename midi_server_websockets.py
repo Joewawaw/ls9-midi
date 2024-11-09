@@ -36,8 +36,13 @@
 ## move timeout to a separate thread into the class, should not be visible on the main loop
 ## move async part of main loop to a specific nested? function that is declared as async, not the entire main block
 ## move is_, getters and send_nrpn into midi in out class
-## in this websockets server code's pure form, process midi message should not exist here. in a class based setup, we can configure process_cc_messages to trigger based on a clock flag
-## make process_midi_messages a importable function from midi_yamaha_ls9.py
+## make --ip flag in server code too
+## make systemd service with proper description for all 3 codes (automations, foh mixer server, foh mixer client)
+## in this websockets server code's pure form, process midi message should not exist here. in a
+## class based setup, we can configure process_cc_messages to trigger based on a click flag
+## make process_midi_messages a importable function from midi_yamaha_ls9.py. flip the values for process midi messages.
+## move midi console into tools/test? folder
+## unit tests!
 
 import time
 import logging
@@ -491,7 +496,7 @@ async def async_main(port, console, verbose):
             listener_with_args = partial(websocket_listener, arg1=midi_out)
             async with serve(listener_with_args, "localhost", 8001):
                 await asyncio.get_running_loop().create_future()  # run forever
-            
+
             #delay is necessary to not overload the CPU or RAM
             await asyncio.sleep(0.005)
             # if there is an incomplete packet in the buffer, increase the timeout
