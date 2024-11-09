@@ -40,6 +40,7 @@ from bidict import bidict
 import rtmidi
 import click
 import asyncio
+from websockets.asyncio.server import serve
 
 #my constants
 import yamaha_ls9_constants as MIDI_LS9
@@ -388,6 +389,9 @@ async def midi_console(midi_port, console):
         midi_in.close_port()
         sys.exit()
 
+async def websocket_listener(websocket):
+    async for message in websocket:
+        print(message.split(','))
 
 # Click wrapper for the async main function
 @click.command()
@@ -444,6 +448,9 @@ async def async_main(port, console, verbose):
 
     while True:
         try:
+            async with serve(websocket_listener, "localhost", 8001):
+                await asyncio.get_running_loop().create_future()  # run forever
+            
             #delay is necessary to not overload the CPU or RAM
             await asyncio.sleep(0.005)
             # if there is an incomplete packet in the buffer, increase the timeout
