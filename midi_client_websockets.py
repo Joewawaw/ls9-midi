@@ -30,11 +30,74 @@
 ####       pip install python-rtmidi bidict websockets click
 ####       cd src
 ####       ./midi_server_websockets.py
+import time
+import logging
+import traceback
 import asyncio
+import sys
+from functools import partial
+
+from bidict import bidict
+import rtmidi
+import click
 from websockets.sync.client import connect
 
-def websockets_send():
-    with connect("ws://localhost:8001") as websocket:
-        websocket.send("80,100")
+#my constants
+import yamaha_ls9_constants as MIDI_LS9
 
-websockets_send()
+WEBSOCKET_IP = 'localhost'
+WEBSOCKET_PORT = '8001'
+
+def websockets_send(controller, data):
+    with connect(f'ws://{WEBSOCKET_IP}:{WEBSOCKET_PORT}') as websocket:
+        websocket.send(f'{int(controller)},{int(data)}')
+
+# Click wrapper for the async main function
+@click.command()
+@click.option('-v', '--verbose', is_flag=True, default=False, help='Set logging level to DEBUG')
+@click.option('-p', '--port', default=0, metavar='PORT', show_default=True, type=int, help='Specify MIDI port number')
+def main(port, verbose):
+    asyncio.run(async_main(port, verbose))
+
+async def async_main(midi_port, verbose):
+    
+    # using a list because lists are mutable, and so their values will change in the parent function
+    # if changed in a child function.
+    counter = [0]
+    def midi_cc_callback(event, unused):
+        message, timestamp = event
+        if message[0] == MIDI_LS9.CC_CMD_BYTE:
+            logging.debug(f'CC Message    {message[0]}\t{message[1]}\t{message[2]}')
+            logging.info(f'websocket send to {WEBSOCKET_IP}')
+            websockets_send(message[1], message[2])
+            counter[0] = 0
+
+    if verbose:
+        log_level = logging.DEBUG
+    else:
+        log_level = logging.INFO
+    logging.basicConfig(format='%(asctime)s %(message)s', level=log_level)
+    midi_in = rtmidi.MidiIn()
+    midi_in.open_port(midi_port)
+
+    logging.info('MIDI CC Console. Echoing all incoming MIDI CC messages (3 byte packets)')
+    logging.info('Press CTRL+C to exit')
+    midi_in.set_callback(midi_cc_callback)
+
+    try:
+        while True:
+            await asyncio.sleep(0.05)
+            counter[0] += 1
+            # every 1s print a blank line
+            if counter[0] == 20:
+                print()
+                counter[0] = 0
+    except KeyboardInterrupt:
+        print('Exiting...')
+    finally:
+        midi_in.close_port()
+        sys.exit()
+
+
+if __name__ == '__main__':
+    main()
