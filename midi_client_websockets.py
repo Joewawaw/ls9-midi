@@ -55,6 +55,7 @@ def main(port, ip, verbose):
 
 async def async_main(midi_port, hostname_port, is_verbose):
     def websockets_send(hostname_port, controller, data):
+        print(hostname_port)
         with connect(f'ws://{hostname_port}') as websocket:
             websocket.send(f'{int(controller)},{int(data)}')
 
