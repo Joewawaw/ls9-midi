@@ -50,10 +50,10 @@ import yamaha_ls9_constants as MIDI_LS9
 @click.option('-v', '--verbose', is_flag=True, default=False, help='Set logging level to DEBUG')
 @click.option('-p', '--port', default=0, metavar='PORT', show_default=True, type=int, help='Specify MIDI port number')
 @click.option('--ip', default='localhost:8001', metavar='HOSTNAME:PORT', show_default=True, type=str, help='Specify hostname and port number')
-def main(port, verbose):
+def main(port, ip, verbose):
     asyncio.run(async_main(port, ip, verbose))
 
-async def async_main(midi_port, hostname_port, verbose):
+async def async_main(midi_port, hostname_port, is_verbose):
     def midi_cc_callback(event, unused):
         message, timestamp = event
         if message[0] == MIDI_LS9.CC_CMD_BYTE:
@@ -65,7 +65,7 @@ async def async_main(midi_port, hostname_port, verbose):
       with connect(f'ws://{hostname_port}') as websocket:
             websocket.send(f'{int(controller)},{int(data)}')
 
-    if verbose:
+    if is_verbose:
         log_level = logging.DEBUG
     else:
         log_level = logging.INFO
