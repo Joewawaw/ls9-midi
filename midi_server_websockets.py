@@ -401,12 +401,12 @@ async def websocket_listener(websocket, arg1):
         data = int((cc_data / 127.0) * MIDI_LS9.FADE_10DB_VALUE)
         #get the right MT SoF controller by checking which bidict cc_controller is an element
         if cc_controller in MIDI_LS9.USB_MIDI_MT5_SOF_CC_CTLRS:
-            mix_name = MIDI_LS9.USB_MIDI_MT5_SOF_CC_CTLRS.inv[cc_controller]
+            mix_name = MIDI_LS9.USB_MIDI_MT5_SOF_CC_CTLRS[cc_controller]
             controller = MIDI_LS9.MT5_SOF_CTRLS[mix_name]
             logging.info(f'MIDI OUT: {mix_name} Send to MT5 @{hex(data)}')
             await send_nrpn(arg1, controller, data)
         elif cc_controller in MIDI_LS9.USB_MIDI_MT6_SOF_CC_CTLRS:
-            mix_name = MIDI_LS9.USB_MIDI_MT6_SOF_CC_CTLRS.inv[cc_controller]
+            mix_name = MIDI_LS9.USB_MIDI_MT6_SOF_CC_CTLRS[cc_controller]
             controller = MIDI_LS9.MT6_SOF_CTRLS[mix_name]
             logging.info(f'MIDI OUT: {mix_name} Send to MT6 @{hex(data)}')
             await send_nrpn(arg1, controller, data)
