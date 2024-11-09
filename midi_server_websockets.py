@@ -9,7 +9,7 @@
 ####   This code allows a front hall user to mix their own in-ear monitors using a usb midi keyboard
 ####   with CC (control change) knobs/faders. The usb midi device connects via USB to a raspberry pi
 ####   (or similar SFF SBC), and the pi connects to Wi-Fi. the pi will create a websockets
-####   connection to this code and send over any 3-byte CC commands as a csv formatted string
+####   connection to this code and send over any 2-byte CC commands as a csv formatted string
 ####   to the websockets port.
 ####
 #### - pip Package Reference:
@@ -393,26 +393,25 @@ async def midi_console(midi_port, console):
 
 async def websocket_listener(websocket, arg1):
     async for message in websocket:
-        message_list = message.split(',')
-        logging.debug(message.split(','))
-        # we assume the casting and index accss wont fail
-        cc_controller = int(message_list[0])
-        cc_data = int(message_list[1])
+        cc_controller, cc_data = message.split(',')
+        logging.debug(f'{cc_controller=}\t{cc_data=}')
+        # we assume casting wont fail
+        cc_controller = int(cc_controller)
+        cc_data = int(cc_data)
         data = int((cc_data / 127.0) * MIDI_LS9.FADE_10DB_VALUE)
         #get the right MT SoF controller by checking which bidict cc_controller is an element
         if cc_controller in MIDI_LS9.USB_MIDI_MT5_SOF_CC_CTLRS:
             mix_name = MIDI_LS9.USB_MIDI_MT5_SOF_CC_CTLRS[cc_controller]
             controller = MIDI_LS9.MT5_SOF_CTRLS[mix_name]
-            logging.info(f'MIDI OUT: {mix_name} Send to MT5 @{hex(data)}')
+            logging.info(f'MIDI OUT: {mix_name} Send to MT5 @ {hex(data)} dB')
             send_nrpn(arg1, controller, data)
         elif cc_controller in MIDI_LS9.USB_MIDI_MT6_SOF_CC_CTLRS:
             mix_name = MIDI_LS9.USB_MIDI_MT6_SOF_CC_CTLRS[cc_controller]
             controller = MIDI_LS9.MT6_SOF_CTRLS[mix_name]
-            logging.info(f'MIDI OUT: {mix_name} Send to MT6 @{hex(data)}')
+            logging.info(f'MIDI OUT: {mix_name} Send to MT6 @ {hex(data)} dB')
             send_nrpn(arg1, controller, data)
         else:
-            logging.error(f'Received CC command from USB keyboard is invalid! {cc_controller}')
-        
+            logging.error(f'The CC command received from USB keyboard is invalid! {cc_controller=}')
 
 # Click wrapper for the async main function
 @click.command()
