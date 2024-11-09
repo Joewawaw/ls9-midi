@@ -404,12 +404,12 @@ async def websocket_listener(websocket, arg1):
             mix_name = MIDI_LS9.USB_MIDI_MT5_SOF_CC_CTLRS[cc_controller]
             controller = MIDI_LS9.MT5_SOF_CTRLS[mix_name]
             logging.info(f'MIDI OUT: {mix_name} Send to MT5 @{hex(data)}')
-            await send_nrpn(arg1, controller, data)
+            send_nrpn(arg1, controller, data)
         elif cc_controller in MIDI_LS9.USB_MIDI_MT6_SOF_CC_CTLRS:
             mix_name = MIDI_LS9.USB_MIDI_MT6_SOF_CC_CTLRS[cc_controller]
             controller = MIDI_LS9.MT6_SOF_CTRLS[mix_name]
             logging.info(f'MIDI OUT: {mix_name} Send to MT6 @{hex(data)}')
-            await send_nrpn(arg1, controller, data)
+            send_nrpn(arg1, controller, data)
         else:
             logging.error(f'Received CC command from USB keyboard is invalid! {cc_controller}')
         
