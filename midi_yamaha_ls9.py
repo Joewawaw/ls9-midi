@@ -254,7 +254,7 @@ def process_midi_messages(messages, midi_out):
         elif channel in MIDI_LS9.WIRELESS_MC_TO_CHR_MAPPING:
             # If Wireless MC CH N switched ON, then turn off WLCHR N & LEADWL N
             if data is True:
-                #we disable toggling if wltbk_state is ON and the current channel is 13 or 14
+                #we disable toggling of this channel if wltbk_state is ON and the current channel is 13 or 14
                 if wltbk_state == 'OFF' or (wltbk_state=='ON' and channel!='CH13' and channel!='CH14'):
                     chr_channel =  MIDI_LS9.WIRELESS_MC_TO_CHR_MAPPING[channel]
                     lead_channel = MIDI_LS9.WIRELESS_MC_TO_LEAD_MAPPING[channel]
@@ -268,6 +268,7 @@ def process_midi_messages(messages, midi_out):
             else:
                 chr_channel =  MIDI_LS9.WIRELESS_MC_TO_CHR_MAPPING[channel]
                 lead_channel = MIDI_LS9.WIRELESS_MC_TO_LEAD_MAPPING[channel]
+                logging.info(f'MIDI OUT: debug')
                 logging.info(f'MIDI OUT: {chr_channel} ON & CH {lead_channel} OFF')
                 send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[chr_channel],  MIDI_LS9.CH_ON_VALUE)
                 send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[lead_channel], MIDI_LS9.CH_OFF_VALUE)
