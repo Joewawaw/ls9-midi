@@ -223,161 +223,160 @@ def process_midi_messages(messages, midi_out):
     # Processing for ON/OFF message operations
     if is_on_off_operation(messages):
         data = get_on_off_data(messages)
-        if data is True:
-        #### Automation for CH01-CH10 switched ON/OFF (switch OFF/ON alt_channel)
-            # if the channel is in the forward values of this mapping, it's one of the original channels
-            if channel in MIDI_LS9.CHORUS_TO_LEAD_MAPPING:
-                alt_channel = MIDI_LS9.CHORUS_TO_LEAD_MAPPING[channel]
-                if data is True:
-                    out_data = MIDI_LS9.CH_OFF_VALUE
-                    logging.debug(f'MIXER IN: {channel} switched ON')
-                    logging.info(f'MIDI OUT: {alt_channel} OFF')
-                else:
-                    out_data = MIDI_LS9.CH_ON_VALUE
-                    logging.debug(f'MIXER IN: {channel} switched OFF')
-                    logging.info(f'MIDI OUT: {alt_channel} ON')
-                send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[alt_channel], out_data)
+    #### Automation for CH01-CH10 switched ON/OFF (switch OFF/ON alt_channel)
+        # if the channel is in the forward values of this mapping, it's one of the original channels
+        if channel in MIDI_LS9.CHORUS_TO_LEAD_MAPPING:
+            alt_channel = MIDI_LS9.CHORUS_TO_LEAD_MAPPING[channel]
+            if data is True:
+                out_data = MIDI_LS9.CH_OFF_VALUE
+                logging.debug(f'MIXER IN: {channel} switched ON')
+                logging.info(f'MIDI OUT: {alt_channel} OFF')
+            else:
+                out_data = MIDI_LS9.CH_ON_VALUE
+                logging.debug(f'MIXER IN: {channel} switched OFF')
+                logging.info(f'MIDI OUT: {alt_channel} ON')
+            send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[alt_channel], out_data)
 
-            #if the channel is part of the inverse bidict, it is a duplicate channel (i.e. CH33-CH42)
-            elif channel in MIDI_LS9.CHORUS_TO_LEAD_MAPPING.inv:
-                alt_channel = MIDI_LS9.CHORUS_TO_LEAD_MAPPING.inv[channel]
-                if data is True:
-                    out_data = MIDI_LS9.CH_OFF_VALUE
-                    logging.debug(f'MIXER IN: {channel} switched ON')
-                    logging.info(f'MIDI OUT: {alt_channel} OFF')
-                else:
-                    out_data - MIDI_LS9.CH_ON_VALUE
-                    logging.debug(f'MIXER IN: {channel} switched OFF')
-                    logging.info(f'MIDI OUT: {alt_channel} ON')
-                send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[alt_channel], out_data)
+        #if the channel is part of the inverse bidict, it is a duplicate channel (i.e. CH33-CH42)
+        elif channel in MIDI_LS9.CHORUS_TO_LEAD_MAPPING.inv:
+            alt_channel = MIDI_LS9.CHORUS_TO_LEAD_MAPPING.inv[channel]
+            if data is True:
+                out_data = MIDI_LS9.CH_OFF_VALUE
+                logging.debug(f'MIXER IN: {channel} switched ON')
+                logging.info(f'MIDI OUT: {alt_channel} OFF')
+            else:
+                out_data - MIDI_LS9.CH_ON_VALUE
+                logging.debug(f'MIXER IN: {channel} switched OFF')
+                logging.info(f'MIDI OUT: {alt_channel} ON')
+            send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[alt_channel], out_data)
 
-        #### Automation for Wireless Mics switched ON/OFF
-            elif channel in MIDI_LS9.WIRELESS_MC_TO_CHR_MAPPING:
-                # If Wireless MC CH N switched ON, then turn off WLCHR N & LEADWL N
-                if data is True:
-                    #we disable toggling if wltbk_state is ON and the current channel is 13 or 14
-                    if wltbk_state == 'OFF' or (wltbk_state=='ON' and channel!='CH13' and channel!='CH14'):
-                        chr_channel =  MIDI_LS9.WIRELESS_MC_TO_CHR_MAPPING[channel]
-                        lead_channel = MIDI_LS9.WIRELESS_MC_TO_LEAD_MAPPING[channel]
-                        logging.info(f'MIDI OUT: {lead_channel} OFF & CH {chr_channel} OFF')
-                        send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[chr_channel],  MIDI_LS9.CH_OFF_VALUE)
-                        send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[lead_channel], MIDI_LS9.CH_OFF_VALUE)
-                    #if a channel that is WLTBK is switched ON while in WLTBK mode,
-                    # we need to turn it back off.
-                    else:
-                        send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[channel],  MIDI_LS9.CH_OFF_VALUE)
-                else:
+    #### Automation for Wireless Mics switched ON/OFF
+        elif channel in MIDI_LS9.WIRELESS_MC_TO_CHR_MAPPING:
+            # If Wireless MC CH N switched ON, then turn off WLCHR N & LEADWL N
+            if data is True:
+                #we disable toggling if wltbk_state is ON and the current channel is 13 or 14
+                if wltbk_state == 'OFF' or (wltbk_state=='ON' and channel!='CH13' and channel!='CH14'):
                     chr_channel =  MIDI_LS9.WIRELESS_MC_TO_CHR_MAPPING[channel]
                     lead_channel = MIDI_LS9.WIRELESS_MC_TO_LEAD_MAPPING[channel]
-                    logging.info(f'MIDI OUT: {chr_channel} ON & CH {lead_channel} OFF')
-                    send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[chr_channel],  MIDI_LS9.CH_ON_VALUE)
+                    logging.info(f'MIDI OUT: {lead_channel} OFF & CH {chr_channel} OFF')
+                    send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[chr_channel],  MIDI_LS9.CH_OFF_VALUE)
                     send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[lead_channel], MIDI_LS9.CH_OFF_VALUE)
-
-            elif channel in MIDI_LS9.WIRELESS_MC_TO_LEAD_MAPPING.inv:
-                # If LEADWL CH N switched ON, then turn off WLCHR N & WLMC N
-                if data is True:
-                    if wltbk_state == 'OFF' or (wltbk_state=='ON' and channel!='CH45' and channel!='CH46'):
-                        mc_channel =  MIDI_LS9.WIRELESS_MC_TO_LEAD_MAPPING.inv[channel]
-                        chr_channel = MIDI_LS9.WIRELESS_CHR_TO_LEAD_MAPPING.inv[channel]
-                        logging.info(f'MIDI OUT: {chr_channel} OFF & CH {mc_channel} OFF')
-                        send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[chr_channel], MIDI_LS9.CH_OFF_VALUE)
-                        send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[mc_channel],  MIDI_LS9.CH_OFF_VALUE)
-                    else:
-                        send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[channel],  MIDI_LS9.CH_OFF_VALUE)
+                #if a channel that is WLTBK is switched ON while in WLTBK mode,
+                # we need to turn it back off.
                 else:
+                    send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[channel],  MIDI_LS9.CH_OFF_VALUE)
+            else:
+                chr_channel =  MIDI_LS9.WIRELESS_MC_TO_CHR_MAPPING[channel]
+                lead_channel = MIDI_LS9.WIRELESS_MC_TO_LEAD_MAPPING[channel]
+                logging.info(f'MIDI OUT: {chr_channel} ON & CH {lead_channel} OFF')
+                send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[chr_channel],  MIDI_LS9.CH_ON_VALUE)
+                send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[lead_channel], MIDI_LS9.CH_OFF_VALUE)
+
+        elif channel in MIDI_LS9.WIRELESS_MC_TO_LEAD_MAPPING.inv:
+            # If LEADWL CH N switched ON, then turn off WLCHR N & WLMC N
+            if data is True:
+                if wltbk_state == 'OFF' or (wltbk_state=='ON' and channel!='CH45' and channel!='CH46'):
                     mc_channel =  MIDI_LS9.WIRELESS_MC_TO_LEAD_MAPPING.inv[channel]
                     chr_channel = MIDI_LS9.WIRELESS_CHR_TO_LEAD_MAPPING.inv[channel]
-                    logging.info(f'MIDI OUT: {chr_channel} ON & CH {mc_channel} OFF')
-                    send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[chr_channel], MIDI_LS9.CH_ON_VALUE)
+                    logging.info(f'MIDI OUT: {chr_channel} OFF & CH {mc_channel} OFF')
+                    send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[chr_channel], MIDI_LS9.CH_OFF_VALUE)
                     send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[mc_channel],  MIDI_LS9.CH_OFF_VALUE)
-
-            elif channel in MIDI_LS9.WIRELESS_CHR_TO_LEAD_MAPPING:
-                # If WLCHR CH N switched ON, then turn off LEADWL N & WLMC N
-                if data is True:
-                    if wltbk_state == 'OFF' or (wltbk_state=='ON' and channel!='CH49' and channel!='CH50'):
-                        mc_channel =   MIDI_LS9.WIRELESS_MC_TO_CHR_MAPPING.inv[channel]
-                        lead_channel = MIDI_LS9.WIRELESS_CHR_TO_LEAD_MAPPING[channel]
-                        logging.info(f'MIDI OUT: {mc_channel} OFF & CH {lead_channel} OFF')
-                        send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[mc_channel],   MIDI_LS9.CH_OFF_VALUE)
-                        send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[lead_channel], MIDI_LS9.CH_OFF_VALUE)
-                    else:
-                        send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[channel],  MIDI_LS9.CH_OFF_VALUE)
                 else:
+                    send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[channel],  MIDI_LS9.CH_OFF_VALUE)
+            else:
+                mc_channel =  MIDI_LS9.WIRELESS_MC_TO_LEAD_MAPPING.inv[channel]
+                chr_channel = MIDI_LS9.WIRELESS_CHR_TO_LEAD_MAPPING.inv[channel]
+                logging.info(f'MIDI OUT: {chr_channel} ON & CH {mc_channel} OFF')
+                send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[chr_channel], MIDI_LS9.CH_ON_VALUE)
+                send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[mc_channel],  MIDI_LS9.CH_OFF_VALUE)
+
+        elif channel in MIDI_LS9.WIRELESS_CHR_TO_LEAD_MAPPING:
+            # If WLCHR CH N switched ON, then turn off LEADWL N & WLMC N
+            if data is True:
+                if wltbk_state == 'OFF' or (wltbk_state=='ON' and channel!='CH49' and channel!='CH50'):
                     mc_channel =   MIDI_LS9.WIRELESS_MC_TO_CHR_MAPPING.inv[channel]
                     lead_channel = MIDI_LS9.WIRELESS_CHR_TO_LEAD_MAPPING[channel]
-                    logging.info(f'MIDI OUT: {lead_channel} ON & CH {mc_channel} OFF')
-                    send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[lead_channel], MIDI_LS9.CH_ON_VALUE)
+                    logging.info(f'MIDI OUT: {mc_channel} OFF & CH {lead_channel} OFF')
                     send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[mc_channel],   MIDI_LS9.CH_OFF_VALUE)
-
-        #### Automation for MIX1 or MIX2 switched ON (switch ON ST LR)
-            elif channel == 'MIX1' or channel == 'MIX2' and data is True:
-                send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS['ST LR'], MIDI_LS9.CH_ON_VALUE)
-        #### Automation for ST L/R switched OFF (switch OFF MIX1 as well)
-            elif channel == 'ST LR' and data is False:
-                send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS['MIX1'], MIDI_LS9.CH_OFF_VALUE)
-
-        #### Automation for PC IN2 routing to BASMNT
-            elif channel == 'ST-IN1':
-                if data is True:
-                    logging.info('MIDI OUT: PC IN2 -> BASMNT')
-                    out_data_mix16 = MIDI_LS9.FADE_0DB_VALUE
-                    out_data_mono =  MIDI_LS9.FADE_NEGINF_VALUE
+                    send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[lead_channel], MIDI_LS9.CH_OFF_VALUE)
                 else:
-                    logging.info('MIDI OUT: STREAM -> BASMNT')
-                    out_data_mix16 = MIDI_LS9.FADE_NEGINF_VALUE
-                    out_data_mono =  MIDI_LS9.FADE_0DB_VALUE
-                send_nrpn(midi_out, MIDI_LS9.MIX16_SEND_TO_MT1, out_data_mix16)
-                send_nrpn(midi_out, MIDI_LS9.MONO_SEND_TO_MT1,  out_data_mono)
+                    send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[channel],  MIDI_LS9.CH_OFF_VALUE)
+            else:
+                mc_channel =   MIDI_LS9.WIRELESS_MC_TO_CHR_MAPPING.inv[channel]
+                lead_channel = MIDI_LS9.WIRELESS_CHR_TO_LEAD_MAPPING[channel]
+                logging.info(f'MIDI OUT: {lead_channel} ON & CH {mc_channel} OFF')
+                send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[lead_channel], MIDI_LS9.CH_ON_VALUE)
+                send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[mc_channel],   MIDI_LS9.CH_OFF_VALUE)
 
-        #### Automation for PC IN2 routing to LOBBY
-            elif channel == 'ST-IN2':
-                if data is True:
-                    logging.info('MIDI OUT: PC IN2 -> LOBBY')
-                    out_data_mix16 = MIDI_LS9.FADE_0DB_VALUE
-                    out_data_stlr =  MIDI_LS9.FADE_NEGINF_VALUE
-                else:
-                    logging.info('MIDI OUT: ST L/R -> LOBBY')
-                    out_data_mix16 = MIDI_LS9.FADE_NEGINF_VALUE
-                    out_data_stlr =  MIDI_LS9.FADE_0DB_VALUE
-                send_nrpn(midi_out, MIDI_LS9.MIX16_SEND_TO_MT2, MIDI_LS9.FADE_NEGINF_VALUE)
-                send_nrpn(midi_out, MIDI_LS9.STLR_SEND_TO_MT2,  MIDI_LS9.FADE_0DB_VALUE)
+    #### Automation for MIX1 or MIX2 switched ON (switch ON ST LR)
+        elif channel == 'MIX1' or channel == 'MIX2' and data is True:
+            send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS['ST LR'], MIDI_LS9.CH_ON_VALUE)
+    #### Automation for ST L/R switched OFF (switch OFF MIX1 as well)
+        elif channel == 'ST LR' and data is False:
+            send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS['MIX1'], MIDI_LS9.CH_OFF_VALUE)
 
-        #### Automation for LOUNGE toggle between MONO and ST LR (ST-IN3 switched ON)
-            elif channel == 'ST-IN3':
-                # if ON, route MONO to LOUNGE
-                if data is True:
-                    logging.info('MIDI OUT: MONO -> LOUNGE')
-                    out_data_mono = MIDI_LS9.FADE_0DB_VALUE
-                    out_data_stlr = MIDI_LS9.FADE_NEGINF_VALUE
-                # if OFF, route ST LR to LOUNGE
-                else:
-                    logging.info('MIDI OUT: ST L/R -> LOUNGE')
-                    out_data_mono = MIDI_LS9.FADE_NEGINF_VALUE
-                    out_data_stlr = MIDI_LS9.FADE_0DB_VALUE
-                send_nrpn(midi_out, MIDI_LS9.MONO_SEND_TO_MT3,  out_data_mono)
-                send_nrpn(midi_out, MIDI_LS9.ST_LR_SEND_TO_MT3, out_data_stlr)
+    #### Automation for PC IN2 routing to BASMNT
+        elif channel == 'ST-IN1':
+            if data is True:
+                logging.info('MIDI OUT: PC IN2 -> BASMNT')
+                out_data_mix16 = MIDI_LS9.FADE_0DB_VALUE
+                out_data_mono =  MIDI_LS9.FADE_NEGINF_VALUE
+            else:
+                logging.info('MIDI OUT: STREAM -> BASMNT')
+                out_data_mix16 = MIDI_LS9.FADE_NEGINF_VALUE
+                out_data_mono =  MIDI_LS9.FADE_0DB_VALUE
+            send_nrpn(midi_out, MIDI_LS9.MIX16_SEND_TO_MT1, out_data_mix16)
+            send_nrpn(midi_out, MIDI_LS9.MONO_SEND_TO_MT1,  out_data_mono)
 
-        #### Automation for toggling WLTBK 3 & 4 ON/OFF
-            elif channel == 'ST-IN4':
-                if data is True:
-                    logging.info('MIDI OUT: WLTBK3 & WLTBK4 ON')
-                    wltbk_state = 'ON' # we need this global var to disable WL MC/CHR/LEAD toggling
-                    out_data_ch13 = MIDI_LS9.CH_OFF_VALUE
-                    out_data_ch14 = MIDI_LS9.CH_OFF_VALUE
-                else:
-                    logging.info('MIDI OUT: WLTBK3 & WLTBK4 OFF')
-                    wltbk_state = 'OFF'
-                    #turn on only MC channels (and turn off all alt channels below)
-                    out_data_ch13 = MIDI_LS9.CH_ON_VALUE
-                    out_data_ch14 = MIDI_LS9.CH_ON_VALUE
+    #### Automation for PC IN2 routing to LOBBY
+        elif channel == 'ST-IN2':
+            if data is True:
+                logging.info('MIDI OUT: PC IN2 -> LOBBY')
+                out_data_mix16 = MIDI_LS9.FADE_0DB_VALUE
+                out_data_stlr =  MIDI_LS9.FADE_NEGINF_VALUE
+            else:
+                logging.info('MIDI OUT: ST L/R -> LOBBY')
+                out_data_mix16 = MIDI_LS9.FADE_NEGINF_VALUE
+                out_data_stlr =  MIDI_LS9.FADE_0DB_VALUE
+            send_nrpn(midi_out, MIDI_LS9.MIX16_SEND_TO_MT2, MIDI_LS9.FADE_NEGINF_VALUE)
+            send_nrpn(midi_out, MIDI_LS9.STLR_SEND_TO_MT2,  MIDI_LS9.FADE_0DB_VALUE)
 
-                send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS['CH13'], out_data_ch13)
-                send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS['CH14'], out_data_ch14)
-                #turn off all alt channels for wireless mics 3 & 4; as they all route to ST L/R
-                send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS['CH46'], MIDI_LS9.CH_OFF_VALUE)
-                send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS['CH47'], MIDI_LS9.CH_OFF_VALUE)
-                send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS['CH49'], MIDI_LS9.CH_OFF_VALUE)
-                send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS['CH50'], MIDI_LS9.CH_OFF_VALUE)
+    #### Automation for LOUNGE toggle between MONO and ST LR (ST-IN3 switched ON)
+        elif channel == 'ST-IN3':
+            # if ON, route MONO to LOUNGE
+            if data is True:
+                logging.info('MIDI OUT: MONO -> LOUNGE')
+                out_data_mono = MIDI_LS9.FADE_0DB_VALUE
+                out_data_stlr = MIDI_LS9.FADE_NEGINF_VALUE
+            # if OFF, route ST LR to LOUNGE
+            else:
+                logging.info('MIDI OUT: ST L/R -> LOUNGE')
+                out_data_mono = MIDI_LS9.FADE_NEGINF_VALUE
+                out_data_stlr = MIDI_LS9.FADE_0DB_VALUE
+            send_nrpn(midi_out, MIDI_LS9.MONO_SEND_TO_MT3,  out_data_mono)
+            send_nrpn(midi_out, MIDI_LS9.ST_LR_SEND_TO_MT3, out_data_stlr)
+
+    #### Automation for toggling WLTBK 3 & 4 ON/OFF
+        elif channel == 'ST-IN4':
+            if data is True:
+                logging.info('MIDI OUT: WLTBK3 & WLTBK4 ON')
+                wltbk_state = 'ON' # we need this global var to disable WL MC/CHR/LEAD toggling
+                out_data_ch13 = MIDI_LS9.CH_OFF_VALUE
+                out_data_ch14 = MIDI_LS9.CH_OFF_VALUE
+            else:
+                logging.info('MIDI OUT: WLTBK3 & WLTBK4 OFF')
+                wltbk_state = 'OFF'
+                #turn on only MC channels (and turn off all alt channels below)
+                out_data_ch13 = MIDI_LS9.CH_ON_VALUE
+                out_data_ch14 = MIDI_LS9.CH_ON_VALUE
+
+            send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS['CH13'], out_data_ch13)
+            send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS['CH14'], out_data_ch14)
+            #turn off all alt channels for wireless mics 3 & 4; as they all route to ST L/R
+            send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS['CH46'], MIDI_LS9.CH_OFF_VALUE)
+            send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS['CH47'], MIDI_LS9.CH_OFF_VALUE)
+            send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS['CH49'], MIDI_LS9.CH_OFF_VALUE)
+            send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS['CH50'], MIDI_LS9.CH_OFF_VALUE)
 
 
 # this is a small tool to echo any NRPN-formatted CC commands

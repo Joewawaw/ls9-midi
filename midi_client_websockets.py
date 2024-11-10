@@ -8,8 +8,8 @@
 #### - Description:
 ####   This code allows a front hall user to mix their own in-ear monitors using a usb midi keyboard
 ####   with CC (control change) knobs/faders. The usb midi device connects via USB to a raspberry pi
-####   (or similar SFF SBC), and the pi connects to Wi-Fi. The pi via this code will create 
-####   a websockets connection to this code and send over any 3-byte CC commands as 
+####   (or similar SFF SBC), and the pi connects to Wi-Fi. The pi via this code will create
+####   a websockets connection to this code and send over any 3-byte CC commands as
 ####   a csv formatted string to the websockets port.
 ####
 #### - pip Package Reference:
@@ -60,7 +60,7 @@ async def async_main(midi_port, hostname_port, is_verbose):
             logging.debug(f'CC Message    {message[0]}\t{message[1]}\t{message[2]}')
             logging.info(f'Websocket Send "{message[1]},{message[2]}"')
             websockets_send(hostname_port, message[1], message[2])
-    
+
     if is_verbose:
         log_level = logging.DEBUG
     else:

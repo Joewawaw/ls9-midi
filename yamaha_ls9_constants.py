@@ -87,8 +87,8 @@ USB_MIDI_MT6_SOF_CC_CTLRS = bidict( {
 #MT5 fader controller is 0x3c00, MT6 is 0x3c80
 
 MT5_SOF_CTRLS = bidict({
-    "MIX1" : 0xb0c,  "MIX2" : 0xb8c,  "MIX3" : 0xc0c,  "MIX4" : 0xc8c,
-    "MIX5" : 0xd0c,  "MIX6" : 0xd8c,  "MIX7" : 0xe0c,  "MIX8" : 0xe8c,
+    "MIX1" : 0x2b0a,  "MIX2" : 0x2b8a,  "MIX3" : 0xc0c,  "MIX4" : 0xc8c,
+    "MIX5" : 0xd0,  "MIX6" : 0xd8c,  "MIX7" : 0xe0c,  "MIX8" : 0xe8c,
     "MIX9" : 0xf0c,  "MIX10": 0xf8c,  "MIX11": 0x100c, "MIX12": 0x108c,
     "MIX13": 0x110c, "MIX14": 0x118c, "MIX15": 0x120c, "MIX16": 0x128c
 })
