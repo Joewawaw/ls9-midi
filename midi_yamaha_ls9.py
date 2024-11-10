@@ -342,7 +342,7 @@ def process_midi_messages(messages, midi_out):
             send_nrpn(midi_out, MIDI_LS9.STLR_SEND_TO_MT2,  MIDI_LS9.FADE_0DB_VALUE)
 
     #### Automation for LOUNGE toggle between MONO and ST LR (ST-IN3 switched ON)
-        elif channel == 'ST-IN3':
+        elif channel == 'ST-IN4':
             # if ON, route MONO to LOUNGE
             if data is True:
                 logging.info('MIDI OUT: MONO -> LOUNGE')
@@ -357,7 +357,7 @@ def process_midi_messages(messages, midi_out):
             send_nrpn(midi_out, MIDI_LS9.ST_LR_SEND_TO_MT3, out_data_stlr)
 
     #### Automation for toggling WLTBK 3 & 4 ON/OFF
-        elif channel == 'ST-IN4':
+        elif channel == 'ST-IN3':
             if data is True:
                 logging.info('MIDI OUT: WLTBK3 & WLTBK4 ON')
                 wltbk_state = 'ON' # we need this global var to disable WL MC/CHR/LEAD toggling
