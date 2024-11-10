@@ -361,20 +361,18 @@ def process_midi_messages(messages, midi_out):
             if data is True:
                 logging.info('MIDI OUT: WLTBK3 & WLTBK4 ON')
                 wltbk_state = 'ON' # we need this global var to disable WL MC/CHR/LEAD toggling
-                out_data_ch13 = MIDI_LS9.CH_OFF_VALUE
-                out_data_ch14 = MIDI_LS9.CH_OFF_VALUE
+                out_data = MIDI_LS9.CH_OFF_VALUE
             else:
                 logging.info('MIDI OUT: WLTBK3 & WLTBK4 OFF')
                 wltbk_state = 'OFF'
                 #turn on only MC channels (and turn off all alt channels below)
-                out_data_ch13 = MIDI_LS9.CH_ON_VALUE
-                out_data_ch14 = MIDI_LS9.CH_ON_VALUE
+                out_data = MIDI_LS9.CH_ON_VALUE
 
-            send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS['CH13'], out_data_ch13)
-            send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS['CH14'], out_data_ch14)
+            send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS['CH13'], out_data)
+            send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS['CH14'], out_data)
             #turn off all alt channels for wireless mics 3 & 4; as they all route to ST L/R
+            send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS['CH45'], MIDI_LS9.CH_OFF_VALUE)
             send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS['CH46'], MIDI_LS9.CH_OFF_VALUE)
-            send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS['CH47'], MIDI_LS9.CH_OFF_VALUE)
             send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS['CH49'], MIDI_LS9.CH_OFF_VALUE)
             send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS['CH50'], MIDI_LS9.CH_OFF_VALUE)
 
