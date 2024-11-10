@@ -263,7 +263,7 @@ def process_midi_messages(messages, midi_out):
                     send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[lead_channel], MIDI_LS9.CH_OFF_VALUE)
                 #if a channel that is WLTBK is switched ON while in WLTBK mode,
                 # we need to turn it back off.
-                else:
+                elif wltbk_state == 'ON':
                     send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[channel],  MIDI_LS9.CH_OFF_VALUE)
             else:
                 chr_channel =  MIDI_LS9.WIRELESS_MC_TO_CHR_MAPPING[channel]
@@ -281,7 +281,7 @@ def process_midi_messages(messages, midi_out):
                     logging.info(f'MIDI OUT: {chr_channel} OFF & CH {mc_channel} OFF')
                     send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[chr_channel], MIDI_LS9.CH_OFF_VALUE)
                     send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[mc_channel],  MIDI_LS9.CH_OFF_VALUE)
-                else:
+                elif wltbk_state == 'ON':
                     send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[channel],  MIDI_LS9.CH_OFF_VALUE)
             else:
                 mc_channel =  MIDI_LS9.WIRELESS_MC_TO_LEAD_MAPPING.inv[channel]
@@ -299,7 +299,7 @@ def process_midi_messages(messages, midi_out):
                     logging.info(f'MIDI OUT: {mc_channel} OFF & CH {lead_channel} OFF')
                     send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[mc_channel],   MIDI_LS9.CH_OFF_VALUE)
                     send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[lead_channel], MIDI_LS9.CH_OFF_VALUE)
-                else:
+                elif wltbk_state == 'ON':
                     send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[channel],  MIDI_LS9.CH_OFF_VALUE)
             else:
                 mc_channel =   MIDI_LS9.WIRELESS_MC_TO_CHR_MAPPING.inv[channel]
