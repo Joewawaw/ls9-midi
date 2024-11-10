@@ -252,9 +252,9 @@ def process_midi_messages(messages, midi_out):
 
     #### Automation for Wireless Mics switched ON/OFF
         elif channel in MIDI_LS9.WIRELESS_MC_TO_CHR_MAPPING:
+            logging.info(f'{wltbk_state=}')
             # If Wireless MC CH N switched ON, then turn off WLCHR N & LEADWL N
             if data is True:
-                logging.info(f'{wltbk_state=}')
                 #we disable toggling of this channel if wltbk_state is ON and the current channel is 13 or 14
                 if wltbk_state == 'OFF' or (wltbk_state=='ON' and channel!='CH13' and channel!='CH14'):
                     chr_channel =  MIDI_LS9.WIRELESS_MC_TO_CHR_MAPPING[channel]
