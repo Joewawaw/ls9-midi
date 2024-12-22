@@ -245,7 +245,7 @@ def process_midi_messages(messages, midi_out):
                 logging.debug(f'MIXER IN: {channel} switched ON')
                 logging.info(f'MIDI OUT: {alt_channel} OFF')
             else:
-                out_data - MIDI_LS9.CH_ON_VALUE
+                out_data = MIDI_LS9.CH_ON_VALUE
                 logging.debug(f'MIXER IN: {channel} switched OFF')
                 logging.info(f'MIDI OUT: {alt_channel} ON')
             send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[alt_channel], out_data)
