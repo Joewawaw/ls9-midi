@@ -189,17 +189,17 @@ def process_midi_messages(messages, midi_out):
             lead_ch = MIDI_LS9.CHORUS_TO_LEAD_MAPPING[channel]
             if data < MIDI_LS9.FADE_60DB_VALUE and channel_states[channel] == 'ON':
                 channel_states[channel] = 'OFF'
-                out_data = MIDI_LS9.FADE_0DB_VALUE
-                logging.debug(f'MIXER IN: {channel} fade above -50dB')
-                logging.info(f'MIDI OUT: {channel}, {lead_ch} Send to MIX1,2 @ 0 dB')
+                out_data = MIDI_LS9.FADE_NEGINF_VALUE
+                logging.debug(f'MIXER IN: {channel} fade below -60dB')
+                logging.info(f'MIDI OUT: {channel}, {lead_ch} Send to MIX1,2 @ -inf dB')
                 send_nrpn(midi_out, MIDI_LS9.MIX1_SOF_CTLRS[channel], out_data)
                 send_nrpn(midi_out, MIDI_LS9.MIX1_SOF_CTLRS[lead_ch], out_data)
             #fade back up to 0dB only if above -50dB, hence it is a software schmitt trigger
             elif data > MIDI_LS9.FADE_50DB_VALUE and channel_states[channel] == 'OFF':
                 channel_states[channel] = 'ON'
-                out_data = MIDI_LS9.FADE_NEGINF_VALUE
-                logging.debug(f'MIXER IN: {channel} fade below -60dB')
-                logging.info(f'MIDI OUT: {channel}, {lead_ch} Send to MIX1,2 @ -inf dB')
+                out_data = MIDI_LS9.FADE_0DB_VALUE
+                logging.debug(f'MIXER IN: {channel} fade above -50dB')
+                logging.info(f'MIDI OUT: {channel}, {lead_ch} Send to MIX1,2 @ 0 dB')
                 send_nrpn(midi_out, MIDI_LS9.MIX1_SOF_CTLRS[channel], out_data)
                 send_nrpn(midi_out, MIDI_LS9.MIX1_SOF_CTLRS[lead_ch], out_data)
 
