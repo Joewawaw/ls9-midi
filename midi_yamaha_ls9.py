@@ -364,7 +364,7 @@ def process_midi_messages(messages, midi_out):
             send_nrpn(midi_out, MIDI_LS9.MONO_SEND_TO_MT3,  out_data_mono)
             send_nrpn(midi_out, MIDI_LS9.ST_LR_SEND_TO_MT3, out_data_stlr)
         elif channel == 'CH18':
-            logging.info(f"TBAS FADER: {channel}\t{data}")
+            logging.info("Yes")
 
     #### Automation for toggling WLTBK 3 & 4 ON/OFF
         #elif channel == 'ST-IN3':
