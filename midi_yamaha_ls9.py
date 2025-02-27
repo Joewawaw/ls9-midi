@@ -254,7 +254,8 @@ def process_midi_messages(messages, midi_out):
                 logging.info(f'MIDI OUT: {alt_channel} ON')
             send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[alt_channel], out_data)
        
-        elif channel == MIDI_LS9.FADER_CTLRS["CH18"]:
+        #elif channel in MIDI_LS9.FADER_CTLRS["CH18"]:
+        else:
             logging.info(f"TBAS FADER: {channel}\t{data}")
 
     #### Automation for Wireless Mics switched ON/OFF
