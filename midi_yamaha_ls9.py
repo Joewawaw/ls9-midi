@@ -206,7 +206,8 @@ def process_midi_messages(messages, midi_out):
                 logging.info(f'MIDI OUT: {channel}, {lead_ch} Send to MIX1,2 @ 0 dB')
                 send_nrpn(midi_out, MIDI_LS9.MIX1_SOF_CTLRS[channel], out_data)
                 send_nrpn(midi_out, MIDI_LS9.MIX1_SOF_CTLRS[lead_ch], out_data)
-
+        elif channel == 'CH18':
+            logging.info(f"TBAS {channel}\t{data}")
 #! this section is actually not needed
 #        elif channel in MIDI_LS9.WIRELESS_MC_TO_CHR_MAPPING and channel_states[channel] == 'ON':
 #            channel_states[channel] = 'OFF'
@@ -363,8 +364,6 @@ def process_midi_messages(messages, midi_out):
                 out_data_stlr = MIDI_LS9.FADE_0DB_VALUE
             send_nrpn(midi_out, MIDI_LS9.MONO_SEND_TO_MT3,  out_data_mono)
             send_nrpn(midi_out, MIDI_LS9.ST_LR_SEND_TO_MT3, out_data_stlr)
-        elif channel == 'CH18':
-            logging.info("Yes")
 
     #### Automation for toggling WLTBK 3 & 4 ON/OFF
         #elif channel == 'ST-IN3':
