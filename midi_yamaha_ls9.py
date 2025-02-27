@@ -30,21 +30,23 @@
 #### - pip Package Reference:
 ####     https://pypi.org/project/python-rtmidi/
 ####     https://pypi.org/project/bidict/
-####
+####     https://click.palletsprojects.com/en/stable/
 #### - Requirements:
-####   This code requires a python venv with packages python-rtmidi & bidict installed.
-####   Here are the steps
-####       apt update
-####       apt install python-venv -y
-####       python3 -m venv ls9-midi
-####       cd ls9-midi
-####       git clone https://github.com/joewawaw/ls9-midi src
-####       source bin/activate
-####       pip install python-rtmidi bidict
-####       cd src
-####       ./midi_yamaha_ls9.py
-#### - Run on Startup (install as a systemd service):
-####       Copy exactly what is inside of the ''' quotation marks into a terminal
+####   1. Disable Dummy MIDI device
+####          echo "blacklist snd_seq_dummy" > /etc/modprobe.d/blacklist.conf
+####   2. This code requires a python venv with packages python-rtmidi & bidict installed.
+####      Here are the steps
+####          apt update
+####          apt install python-venv -y
+####          python3 -m venv ls9-midi
+####          cd ls9-midi
+####          git clone https://github.com/joewawaw/ls9-midi src
+####          source bin/activate
+####          pip install python-rtmidi bidict click
+####          cd src
+####          ./midi_yamaha_ls9.py
+####   3. Run on Startup (install as a systemd service):
+####           Copy exactly what is inside of the ''' quotation marks into a terminal
 '''
 cat <<EOF > /etc/systemd/system/midi_ls9.service
 # systemd Service for Yamaha LS9 automations using MIDI (python)
@@ -55,7 +57,8 @@ After=multi-user.target
 
 [Service]
 Type=simple
-ExecStart=python3 /root/midi_ls9/src/midi_yamaha_ls9.py
+WorkingDirectory=/root/ls9-midi/src
+ExecStart=/root/ls9-midi/bin/python3 /root/ls9-midi/src/midi_yamaha_ls9.py
 Restart=on-failure
 RestartSec=3
 User=root
@@ -63,6 +66,7 @@ User=root
 [Install]
 WantedBy=multi-user.target
 EOF
+systemctl daemon-reload
 systemctl enable midi_ls9.service
 systemctl start  midi_ls9.service
 '''
@@ -249,6 +253,9 @@ def process_midi_messages(messages, midi_out):
                 logging.debug(f'MIXER IN: {channel} switched OFF')
                 logging.info(f'MIDI OUT: {alt_channel} ON')
             send_nrpn(midi_out, MIDI_LS9.ON_OFF_CTLRS[alt_channel], out_data)
+       
+        elif channel == MIDI_LS9.FADER_CTLRS["CH18"]:
+            logging.info(f"TBAS FADER: {channel}\t{data}")
 
     #### Automation for Wireless Mics switched ON/OFF
     #    elif channel in MIDI_LS9.WIRELESS_MC_TO_CHR_MAPPING:
