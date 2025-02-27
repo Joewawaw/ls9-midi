@@ -53,7 +53,8 @@ FADER_CTLRS = bidict({
     "ST LR":  0x3e00, "MONO":   0x3451 #, "MON": 0x
 })
 
-
+TABLA1_PEQ1 = 0x829
+TABLA2_PEQ1 = 0x8a9
 
 # "SOF" means "Sends on Fader"
 MIX1_SOF_CTLRS = bidict({

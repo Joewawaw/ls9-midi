@@ -207,7 +207,9 @@ def process_midi_messages(messages, midi_out):
                 send_nrpn(midi_out, MIDI_LS9.MIX1_SOF_CTLRS[channel], out_data)
                 send_nrpn(midi_out, MIDI_LS9.MIX1_SOF_CTLRS[lead_ch], out_data)
         elif channel == 'CH18':
-            logging.info(f"TBAS {channel}\t{data}")
+            send_nrpn(midi_out, MIDI_LS9.TABLA1_PEQ1, data)
+            send_nrpn(midi_out, MIDI_LS9.TABLA2_PEQ1, data)
+            #logging.info(f"TBAS {channel}\t{data}")
 #! this section is actually not needed
 #        elif channel in MIDI_LS9.WIRELESS_MC_TO_CHR_MAPPING and channel_states[channel] == 'ON':
 #            channel_states[channel] = 'OFF'
