@@ -256,7 +256,6 @@ def process_midi_messages(messages, midi_out):
        
         #elif channel in MIDI_LS9.FADER_CTLRS["CH18"]:
         
-        logging.info(f"TBAS FADER: {channel}\t{data}")
 
     #### Automation for Wireless Mics switched ON/OFF
     #    elif channel in MIDI_LS9.WIRELESS_MC_TO_CHR_MAPPING:
@@ -364,6 +363,8 @@ def process_midi_messages(messages, midi_out):
                 out_data_stlr = MIDI_LS9.FADE_0DB_VALUE
             send_nrpn(midi_out, MIDI_LS9.MONO_SEND_TO_MT3,  out_data_mono)
             send_nrpn(midi_out, MIDI_LS9.ST_LR_SEND_TO_MT3, out_data_stlr)
+        else:
+            logging.info(f"TBAS FADER: {channel}\t{data}")
 
     #### Automation for toggling WLTBK 3 & 4 ON/OFF
         #elif channel == 'ST-IN3':
