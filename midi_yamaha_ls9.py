@@ -210,8 +210,8 @@ def process_midi_messages(messages, midi_out):
             #we map the input data range [0,16383] to [4096, 12288]
             mapped_data = ((data-0)/(16383.0)*(12288-4096)+4096)
             #logging.info(int(mapped_data))
-            send_nrpn(midi_out, MIDI_LS9.TABLA1_PEQ1, data)
-            send_nrpn(midi_out, MIDI_LS9.TABLA2_PEQ1, data)
+            send_nrpn(midi_out, MIDI_LS9.TABLA1_PEQ1, mapped_data)
+            send_nrpn(midi_out, MIDI_LS9.TABLA2_PEQ1, mapped_data)
 #! this section is actually not needed
 #        elif channel in MIDI_LS9.WIRELESS_MC_TO_CHR_MAPPING and channel_states[channel] == 'ON':
 #            channel_states[channel] = 'OFF'
